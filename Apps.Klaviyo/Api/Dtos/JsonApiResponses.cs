@@ -64,6 +64,21 @@ public class TranslationAttributesDto
 
     [JsonProperty("updated")]
     public DateTimeOffset? Updated { get; set; }
+
+    [JsonProperty("values")]
+    public List<TranslationValueDto> Values { get; set; } = [];
+}
+
+public class TranslationValueDto
+{
+    [JsonProperty("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonProperty("source_value")]
+    public string SourceValue { get; set; } = string.Empty;
+
+    [JsonProperty("translations")]
+    public Dictionary<string, string> Translations { get; set; } = [];
 }
 
 public class RelatedResourceDto

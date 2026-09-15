@@ -15,7 +15,7 @@ public class ActionTests : TestBase
     [TestMethod]
     public async Task Search_templates_works_with_optional_filters()
     {
-        var result = await new TemplateActions(InvocationContext)
+        var result = await new TemplateActions(InvocationContext, FileManager)
             .SearchTemplates(CreateFilters(TranslationChannels.Email));
 
         AssertSearchResult(result, TranslationResourceTypes.Template, TranslationChannels.Email);
@@ -25,7 +25,7 @@ public class ActionTests : TestBase
     [TestMethod]
     public async Task Get_template_works()
     {
-        var actions = new TemplateActions(InvocationContext);
+        var actions = new TemplateActions(InvocationContext, FileManager);
         var translationId = await ResolveTranslationId(
             "templateTranslationId",
             () => actions.SearchTemplates(new SearchTranslationsRequest()));
@@ -38,7 +38,7 @@ public class ActionTests : TestBase
     [TestMethod]
     public async Task Search_campaign_variations_works_with_optional_filters()
     {
-        var result = await new CampaignVariationActions(InvocationContext)
+        var result = await new CampaignVariationActions(InvocationContext, FileManager)
             .SearchCampaignVariations(CreateFilters(TranslationChannels.Email));
 
         AssertSearchResult(result, TranslationResourceTypes.CampaignVariation, TranslationChannels.Email);
@@ -48,7 +48,7 @@ public class ActionTests : TestBase
     [TestMethod]
     public async Task Get_campaign_variation_works()
     {
-        var actions = new CampaignVariationActions(InvocationContext);
+        var actions = new CampaignVariationActions(InvocationContext, FileManager);
         var translationId = await ResolveTranslationId(
             "campaignVariationTranslationId",
             () => actions.SearchCampaignVariations(new SearchTranslationsRequest()));
@@ -62,7 +62,7 @@ public class ActionTests : TestBase
     [TestMethod]
     public async Task Search_flow_messages_works_with_optional_filters()
     {
-        var result = await new FlowMessageActions(InvocationContext)
+        var result = await new FlowMessageActions(InvocationContext, FileManager)
             .SearchFlowMessages(CreateFilters(TranslationChannels.Email));
 
         AssertSearchResult(result, TranslationResourceTypes.FlowMessage, TranslationChannels.Email);
@@ -72,7 +72,7 @@ public class ActionTests : TestBase
     [TestMethod]
     public async Task Search_universal_content_works_with_optional_filters()
     {
-        var result = await new UniversalContentActions(InvocationContext)
+        var result = await new UniversalContentActions(InvocationContext, FileManager)
             .SearchUniversalContent(CreateFilters(TranslationChannels.Email));
 
         AssertSearchResult(result, TranslationResourceTypes.UniversalContent, TranslationChannels.Email);
@@ -82,7 +82,7 @@ public class ActionTests : TestBase
     [TestMethod]
     public async Task Get_universal_content_works()
     {
-        var actions = new UniversalContentActions(InvocationContext);
+        var actions = new UniversalContentActions(InvocationContext, FileManager);
         var translationId = await ResolveTranslationId(
             "universalContentTranslationId",
             () => actions.SearchUniversalContent(new SearchTranslationsRequest()));
@@ -97,7 +97,7 @@ public class ActionTests : TestBase
     public async Task Search_content_works_with_optional_filters()
     {
         var updatedTo = DateTime.UtcNow.AddMinutes(5);
-        var result = await new ContentActions(InvocationContext).SearchContent(new SearchContentRequest
+        var result = await new ContentActions(InvocationContext, FileManager).SearchContent(new SearchContentRequest
         {
             ContentTypes =
             [
