@@ -11,12 +11,12 @@ public class UploadTemplateRequest
     [DataSource(typeof(TemplateDataHandler))]
     public string TemplateId { get; set; } = string.Empty;
 
-    [Display("Target locale", Description = "Existing or new locale, for example fr.")]
+    [Display("Target locale", Description = "Required existing or new locale to upload the translated HTML into, for example fr.")]
     public string Locale { get; set; } = string.Empty;
 
     [Display("Source locale", Description = "Used only when translations must be enabled for this template.")]
     public string SourceLocale { get; set; } = "en";
 
-    [Display("Content file", Description = "HTML for a single-value template, or XLIFF 2.0 for any template.")]
+    [Display("Content file", Description = "Translated HTML file from Download template. Keep Klaviyo value IDs when the file contains multiple blocks.")]
     public FileReference Content { get; set; } = default!;
 }

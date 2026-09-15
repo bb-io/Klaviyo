@@ -10,7 +10,4 @@ public class DownloadTemplateResponse
 
     [Display("Template data (JSON)")]
     public FileReference JsonFile { get; set; } = default!;
-
-    [Display("Translation (XLIFF)")]
-    public FileReference? XliffFile { get; set; }
 }

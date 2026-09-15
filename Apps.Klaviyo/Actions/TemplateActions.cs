@@ -21,11 +21,11 @@ public class TemplateActions(InvocationContext invocationContext, IFileManagemen
     public Task<TemplateResponse> GetTemplate([ActionParameter] TranslationIdentifier input) =>
         new TranslationService(Client).GetTemplateAsync(input.TranslationId);
 
-    [Action("Download template", Description = "Downloads source or localized template HTML and JSON, with XLIFF when available.")]
+    [Action("Download template", Description = "Downloads source or localized template content as HTML and template data as JSON. HTML keeps value IDs when a template has multiple translation blocks.")]
     public Task<DownloadTemplateResponse> DownloadTemplate([ActionParameter] DownloadTemplateRequest input) =>
         new TemplateFileService(Client, fileManagementClient).DownloadAsync(input);
 
-    [Action("Upload template", Description = "Uploads translated HTML or XLIFF to an existing or new template locale.")]
+    [Action("Upload template", Description = "Uploads translated HTML to the specified existing or new template locale.")]
     public Task UploadTemplate([ActionParameter] UploadTemplateRequest input) =>
         new TemplateFileService(Client, fileManagementClient).UploadAsync(input);
 }

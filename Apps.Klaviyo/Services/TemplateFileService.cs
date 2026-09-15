@@ -23,41 +23,38 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
             throw new PluginApplicationException($"Template '{templateId}' has no exportable HTML.");
 
         var locale = input.Locale?.Trim();
-        TranslationDto? translation = null;
-        if (!string.IsNullOrWhiteSpace(locale))
-        {
-            translation = await FindTranslationAsync(templateId);
-            locale = translation?.Attributes.TargetLocales.FirstOrDefault(value =>
-                         string.Equals(value, locale, StringComparison.OrdinalIgnoreCase)) ?? locale;
-        }
+        var translation = await FindTranslationAsync(templateId);
+        locale = translation?.Attributes.TargetLocales.FirstOrDefault(value =>
+                     string.Equals(value, locale, StringComparison.OrdinalIgnoreCase)) ?? locale;
 
         var html = sourceHtml;
         var htmlIsSource = true;
-        FileReference? xliffFile = null;
-        if (translation is not null && !string.IsNullOrWhiteSpace(locale))
+        var hasMultipleValues = false;
+        if (translation is not null)
         {
             translation = await GetWithValuesAsync(translation.Id);
             var values = translation.Attributes.Values;
-            if (values.Count == 1)
+            if (values.Count > 1)
             {
-                var target = values[0].Translations.FirstOrDefault(item =>
-                    string.Equals(item.Key, locale, StringComparison.OrdinalIgnoreCase)).Value;
-                html = string.IsNullOrWhiteSpace(target) ? values[0].SourceValue : target;
-                htmlIsSource = string.IsNullOrWhiteSpace(target);
+                html = TemplateHtmlCodec.Export(templateId, locale, values);
+                hasMultipleValues = true;
+                htmlIsSource = string.IsNullOrWhiteSpace(locale) || values.All(value => value.Translations.All(item =>
+                    !string.Equals(item.Key, locale, StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrWhiteSpace(item.Value)));
             }
-
-            if (values.Count > 0)
+            else if (values.Count == 1 && !string.IsNullOrWhiteSpace(locale))
             {
-                var sourceLocale = translation.Attributes.SourceLocale
-                    ?? throw new PluginApplicationException("Klaviyo did not return a source locale.");
-                var xliff = TranslationFileCodec.Export(translation.Id, sourceLocale, locale, values);
-                xliffFile = await SaveAsync(xliff, "application/xliff+xml", $"{templateId}.{locale}.xlf");
+                var value = values[0];
+                var target = value.Translations.FirstOrDefault(item =>
+                    string.Equals(item.Key, locale, StringComparison.OrdinalIgnoreCase)).Value;
+                html = string.IsNullOrWhiteSpace(target) ? value.SourceValue : target;
+                htmlIsSource = string.IsNullOrWhiteSpace(target);
             }
         }
 
         var suffix = string.IsNullOrWhiteSpace(locale) ? "source" : locale;
         var htmlFile = await SaveAsync(html, "text/html",
-            $"{templateId}.{(htmlIsSource ? "source" : suffix)}.html");
+            $"{templateId}.{(hasMultipleValues ? suffix : htmlIsSource ? "source" : suffix)}.html");
         var json = new JObject
         {
             ["data"] = JObject.FromObject(template)
@@ -69,8 +66,7 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
         return new DownloadTemplateResponse
         {
             Content = htmlFile,
-            JsonFile = jsonFile,
-            XliffFile = xliffFile
+            JsonFile = jsonFile
         };
     }
 
@@ -82,8 +78,8 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
             throw new PluginMisconfigurationException("Content file is required.");
 
         var extension = Path.GetExtension(input.Content.Name ?? string.Empty).ToLowerInvariant();
-        if (extension is not (".html" or ".htm" or ".xlf" or ".xliff"))
-            throw new PluginMisconfigurationException("Upload template accepts HTML or XLIFF 2.0 files.");
+        if (extension is not (".html" or ".htm"))
+            throw new PluginMisconfigurationException("Upload template accepts HTML files only.");
 
         using var stream = await fileManagementClient.DownloadAsync(input.Content);
         using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -98,46 +94,36 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
         TranslationDto? existingWithValues = null;
         if (existing is not null)
             existingWithValues = await GetWithValuesAsync(existing.Id);
-        if (extension is ".html" or ".htm")
+        Dictionary<string, string>? translatedValues = null;
+        if (existingWithValues is not null)
         {
-            if (existingWithValues is not null)
+            if (existingWithValues.Attributes.Values.Count > 1)
+                translatedValues = TemplateHtmlCodec.Import(fileText, templateId,
+                    existingWithValues.Attributes.Values);
+            else
             {
                 var value = GetSingleHtmlValue(existingWithValues.Attributes.Values);
                 TranslationFileCodec.ValidateHtmlTranslation(value.SourceValue, fileText, value.Id);
-            }
-            else
-            {
-                var editorType = template.Attributes["editor_type"]?.ToString();
-                if (editorType is not ("CODE" or "USER_DRAGGABLE"))
-                    throw new PluginMisconfigurationException(
-                        "HTML upload without an existing translation is only supported for HTML templates. Use XLIFF for drag-and-drop templates.");
-                var sourceHtml = template.Attributes["html"]?.ToString() ?? string.Empty;
-                TranslationFileCodec.ValidateHtmlTranslation(sourceHtml, fileText, templateId);
+                translatedValues = new Dictionary<string, string> { [value.Id] = fileText };
             }
         }
-        else if (existingWithValues is not null)
+        else
         {
-            var sourceLocale = existingWithValues.Attributes.SourceLocale
-                ?? throw new PluginApplicationException("Klaviyo did not return a source locale.");
-            TranslationFileCodec.Import(fileText, existingWithValues.Id, sourceLocale, locale,
-                existingWithValues.Attributes.Values.ToDictionary(value => value.Id, StringComparer.Ordinal));
+            var editorType = template.Attributes["editor_type"]?.ToString();
+            if (editorType is not ("CODE" or "USER_DRAGGABLE"))
+                throw new PluginMisconfigurationException(
+                    "HTML upload without an existing translation is only supported for HTML templates.");
+            var sourceHtml = template.Attributes["html"]?.ToString() ?? string.Empty;
+            TranslationFileCodec.ValidateHtmlTranslation(sourceHtml, fileText, templateId);
         }
 
         var translation = await EnsureTranslationAsync(templateId, locale, input.SourceLocale, existing);
         translation = await GetWithValuesAsync(translation.Id);
-        Dictionary<string, string> translatedValues;
-        if (extension is ".html" or ".htm")
+        if (translatedValues is null)
         {
-            var value = GetSingleHtmlValue(translation.Attributes.Values);
-            TranslationFileCodec.ValidateHtmlTranslation(value.SourceValue, fileText, value.Id);
-            translatedValues = new Dictionary<string, string> { [value.Id] = fileText };
-        }
-        else
-        {
-            var sourceLocale = translation.Attributes.SourceLocale
-                ?? throw new PluginApplicationException("Klaviyo did not return a source locale.");
-            translatedValues = TranslationFileCodec.Import(fileText, translation.Id, sourceLocale,
-                locale, translation.Attributes.Values.ToDictionary(value => value.Id, StringComparer.Ordinal));
+            var htmlValue = GetSingleHtmlValue(translation.Attributes.Values);
+            TranslationFileCodec.ValidateHtmlTranslation(htmlValue.SourceValue, fileText, htmlValue.Id);
+            translatedValues = new Dictionary<string, string> { [htmlValue.Id] = fileText };
         }
 
         var body = new
@@ -166,7 +152,7 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
     {
         if (values.Count != 1)
             throw new PluginMisconfigurationException(
-                "HTML upload requires exactly one Klaviyo translation value. Use XLIFF for multi-value templates.");
+                "This template needs an HTML file exported with value IDs. Download its locale first.");
         return values.Single();
     }
 
