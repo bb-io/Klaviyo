@@ -1,0 +1,11 @@
+{
+  "ConnectionDefinition": {
+    "apiKey": ""
+  },
+  "TestData": {
+    "templateTranslationId": "",
+    "campaignVariationTranslationId": "",
+    "universalContentTranslationId": ""
+  },
+  "TestFolder": "TestFiles"
+}
