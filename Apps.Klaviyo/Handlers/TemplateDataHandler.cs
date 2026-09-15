@@ -12,7 +12,7 @@ public class TemplateDataHandler(InvocationContext invocationContext)
         DataSourceContext context, CancellationToken cancellationToken)
     {
         var request = new RestRequest("templates", Method.Get)
-            .AddQueryParameter("page[size]", "100");
+            .AddQueryParameter("page[size]", "10");
         var search = context.SearchString?.Trim() ?? string.Empty;
         var results = new List<DataSourceItem>();
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
