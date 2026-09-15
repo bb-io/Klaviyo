@@ -98,7 +98,7 @@ public static class TranslationFileCodec
                 continue;
             }
 
-            EnsureHtmlStructure(current.SourceValue, target, valueId);
+            ValidateHtmlTranslation(current.SourceValue, target, valueId);
         }
 
         if (result.Count == 0)
@@ -107,7 +107,7 @@ public static class TranslationFileCodec
         return result;
     }
 
-    private static void EnsureHtmlStructure(string source, string target, string valueId)
+    public static void ValidateHtmlTranslation(string source, string target, string valueId)
     {
         var sourceTags = HtmlTags.Matches(source)
             .Select(match => (match.Value.StartsWith("</", StringComparison.Ordinal) ? "/" : "")
