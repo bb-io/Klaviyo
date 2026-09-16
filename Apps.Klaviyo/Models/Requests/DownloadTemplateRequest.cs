@@ -10,6 +10,9 @@ public class DownloadTemplateRequest
     [DataSource(typeof(TemplateDataHandler))]
     public string TemplateId { get; set; } = string.Empty;
 
-    [Display("Locale", Description = "Optional target locale. Omit to download the source template.")]
-    public string? Locale { get; set; }
+    [Display("Target locale", Description = "Locale to translate into, for example fr. It may be an existing or new locale.")]
+    public string Locale { get; set; } = string.Empty;
+
+    [Display("Source locale", Description = "Used when translations have not been enabled for this template yet.")]
+    public string SourceLocale { get; set; } = "en";
 }
