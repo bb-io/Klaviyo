@@ -108,6 +108,45 @@ public class ActionTests : TestBase
     }
 
     [TestMethod]
+    public async Task Download_source_campaign_variation_returns_html_and_json()
+    {
+        var actions = new CampaignVariationActions(InvocationContext, FileManager);
+        var (variationId, _) = await ResolveLocalizedCampaignVariation(actions);
+
+        var result = await actions.DownloadCampaignVariation(new DownloadCampaignVariationRequest
+        {
+            CampaignVariationId = variationId
+        });
+
+        Assert.AreEqual("text/html", result.Content.ContentType);
+        Assert.AreEqual("application/json", result.JsonFile.ContentType);
+        Assert.AreEqual($"{variationId}.source.html", result.Content.Name);
+        var html = FileManager.ReadOutputText(result.Content);
+        StringAssert.Contains(html, "blackbird-CampaignVariationId");
+        StringAssert.Contains(html, $"content=\"{variationId}\"");
+        StringAssert.Contains(html, TranslationHtmlFileCodec.TranslationKeyAttribute);
+        StringAssert.Contains(FileManager.ReadOutputText(result.JsonFile), variationId);
+    }
+
+    [TestMethod]
+    public async Task Download_localized_campaign_variation_returns_html_and_json()
+    {
+        var actions = new CampaignVariationActions(InvocationContext, FileManager);
+        var (variationId, locale) = await ResolveLocalizedCampaignVariation(actions);
+
+        var result = await actions.DownloadCampaignVariation(new DownloadCampaignVariationRequest
+        {
+            CampaignVariationId = variationId,
+            Locale = locale
+        });
+
+        Assert.AreEqual($"{variationId}.{locale}.html", result.Content.Name);
+        var html = FileManager.ReadOutputText(result.Content);
+        StringAssert.Contains(html, "blackbird-CampaignVariationId");
+        StringAssert.Contains(html, TranslationHtmlFileCodec.TranslationKeyAttribute);
+    }
+
+    [TestMethod]
     public async Task Search_flow_messages_works_with_optional_filters()
     {
         var result = await new FlowMessageActions(InvocationContext, FileManager)
@@ -235,6 +274,21 @@ public class ActionTests : TestBase
 
         Assert.Inconclusive(
             "No localized template is available. Set TestData:templateId and TestData:templateLocale in appsettings.json.");
+        return (string.Empty, string.Empty);
+    }
+
+    private async Task<(string VariationId, string Locale)> ResolveLocalizedCampaignVariation(
+        CampaignVariationActions actions)
+    {
+        var item = (await actions.SearchCampaignVariations(new SearchTranslationsRequest
+            {
+                Channels = [TranslationChannels.Email]
+            })).Items
+            .FirstOrDefault(variation => variation.TargetLocales.Any());
+        if (item is not null)
+            return (item.ResourceId, item.TargetLocales.First());
+
+        Assert.Inconclusive("No localized email campaign variation is available.");
         return (string.Empty, string.Empty);
     }
 }

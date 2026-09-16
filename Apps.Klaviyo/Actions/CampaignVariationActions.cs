@@ -24,11 +24,12 @@ public class CampaignVariationActions(InvocationContext invocationContext, IFile
         [ActionParameter] TranslationIdentifier input) =>
         new TranslationService(Client).GetCampaignVariationAsync(input.TranslationId);
 
-    [Action("Download campaign variation", Description = "Downloads a campaign variation translation as XLIFF 2.0.")]
-    public Task<DownloadTranslationResponse> DownloadCampaignVariation([ActionParameter] DownloadTranslationRequest input) =>
-        new TranslationFileService(Client, fileManagementClient).DownloadAsync(input, TranslationResourceTypes.CampaignVariation);
+    [Action("Download campaign variation", Description = "Downloads source or localized campaign variation values as HTML, with campaign variation data as JSON.")]
+    public Task<DownloadCampaignVariationResponse> DownloadCampaignVariation(
+        [ActionParameter] DownloadCampaignVariationRequest input) =>
+        new CampaignVariationFileService(Client, fileManagementClient).DownloadAsync(input);
 
-    [Action("Upload campaign variation", Description = "Uploads translated XLIFF values to a campaign variation.")]
-    public Task UploadCampaignVariation([ActionParameter] UploadTranslationRequest input) =>
-        new TranslationFileService(Client, fileManagementClient).UploadAsync(input, TranslationResourceTypes.CampaignVariation);
+    [Action("Upload campaign variation", Description = "Uploads translated HTML to the specified existing or new campaign variation locale.")]
+    public Task UploadCampaignVariation([ActionParameter] UploadCampaignVariationRequest input) =>
+        new CampaignVariationFileService(Client, fileManagementClient).UploadAsync(input);
 }
