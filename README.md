@@ -10,9 +10,9 @@ Documentation coming soon.
 
 ### Template translations
 
-Use **Download template** to export a template for a target locale as XLIFF and JSON. Translate the XLIFF, then pass it to **Upload template** with the same target locale. If that locale does not exist yet, the upload action adds it while preserving the template's existing locales. Set **Source locale** when translations have not been enabled for the template yet.
+Use **Download template** without a locale to export the source template as HTML and JSON. Provide the optional locale to download an existing localization. Translate the HTML, then pass it to **Upload template** with the target locale. If that locale does not exist yet, the upload action adds it while preserving the template's existing locales. Set **Source locale** when translations have not been enabled for the template yet.
 
-Template XLIFF files are generated and read through Blackbird Filters. Upload accepts supported XLIFF 1.x and 2.x files and preserves inline HTML tags. The JSON file is reference data; the upload action takes the translated XLIFF file.
+Template HTML is created through Blackbird Filters so translation actions can protect and restore its inline tags. The JSON file is reference data; the upload action takes the translated HTML file.
 
 ## Feedback
 

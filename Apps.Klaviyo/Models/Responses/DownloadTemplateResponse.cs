@@ -5,7 +5,7 @@ namespace Apps.Klaviyo.Models.Responses;
 
 public class DownloadTemplateResponse
 {
-    [Display("Content (XLIFF)")]
+    [Display("Content (HTML)")]
     public FileReference Content { get; set; } = default!;
 
     [Display("Template data (JSON)")]
