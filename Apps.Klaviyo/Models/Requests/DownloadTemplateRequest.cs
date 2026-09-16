@@ -11,5 +11,6 @@ public class DownloadTemplateRequest
     public string TemplateId { get; set; } = string.Empty;
 
     [Display("Locale", Description = "Optional locale to download. Omit it to download the source template.")]
+    [DataSource(typeof(TemplateLocaleDataHandler))]
     public string? Locale { get; set; }
 }

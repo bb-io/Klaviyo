@@ -12,10 +12,11 @@ public class UploadTemplateRequest
     public string TemplateId { get; set; } = string.Empty;
 
     [Display("Target locale", Description = "Required existing or new locale to upload the translated HTML into, for example fr.")]
+    [DataSource(typeof(UploadTemplateLocaleDataHandler))]
     public string Locale { get; set; } = string.Empty;
 
-    [Display("Source locale", Description = "Used only when translations must be enabled for this template.")]
-    public string SourceLocale { get; set; } = "en";
+    [Display("Source locale", Description = "Optional. Required only when translations have not been configured for this template yet.")]
+    public string? SourceLocale { get; set; }
 
     [Display("Content file", Description = "Translated HTML file from Download template.")]
     public FileReference Content { get; set; } = default!;

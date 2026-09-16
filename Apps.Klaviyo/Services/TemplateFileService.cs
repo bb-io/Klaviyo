@@ -232,7 +232,10 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
     {
         if (existing is null)
         {
-            sourceLocale = ValidateLocale(sourceLocale);
+            if (string.IsNullOrWhiteSpace(sourceLocale))
+                throw new PluginMisconfigurationException(
+                    "Source locale is required when translations have not been configured for this template yet.");
+            sourceLocale = sourceLocale.Trim();
             if (string.Equals(sourceLocale, locale, StringComparison.OrdinalIgnoreCase))
                 throw new PluginMisconfigurationException("Target locale must differ from source locale.");
 
