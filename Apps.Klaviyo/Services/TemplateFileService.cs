@@ -87,7 +87,6 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
 
     public async Task UploadAsync(UploadTemplateRequest input)
     {
-        var templateId = ValidateTemplateId(input.TemplateId);
         var locale = ValidateLocale(input.Locale);
         if (input.Content is null)
             throw new PluginMisconfigurationException("Content file is required.");
@@ -104,11 +103,7 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
 
         var filteredHtml = TemplateHtmlFilterService.Create(fileText, input.Content.Name ?? "template.html");
         var htmlFile = TranslationHtmlFileCodec.Import(filteredHtml);
-        if (htmlFile.Metadata.TryGetValue("TemplateId", out var metadataTemplateId) &&
-            !string.IsNullOrWhiteSpace(metadataTemplateId) &&
-            !string.Equals(templateId, metadataTemplateId, StringComparison.Ordinal))
-            throw new PluginMisconfigurationException(
-                $"The HTML file belongs to template '{metadataTemplateId}', not '{templateId}'.");
+        var templateId = ResolveTemplateId(input.TemplateId, htmlFile.Metadata);
 
         var existing = await FindTranslationAsync(templateId);
         locale = existing?.Attributes.TargetLocales.FirstOrDefault(value =>
@@ -167,6 +162,28 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
 
     public static string[] AddTargetLocale(IEnumerable<string> existingLocales, string newLocale) =>
         existingLocales.Append(newLocale).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+    public static string ResolveTemplateId(
+        string? inputTemplateId,
+        IReadOnlyDictionary<string, string> metadata)
+    {
+        var explicitId = string.IsNullOrWhiteSpace(inputTemplateId)
+            ? null
+            : ValidateTemplateId(inputTemplateId);
+        var metadataId = metadata.TryGetValue("TemplateId", out var value) &&
+                         !string.IsNullOrWhiteSpace(value)
+            ? ValidateTemplateId(value)
+            : null;
+
+        if (explicitId is not null && metadataId is not null &&
+            !string.Equals(explicitId, metadataId, StringComparison.Ordinal))
+            throw new PluginMisconfigurationException(
+                $"The HTML file belongs to template '{metadataId}', not '{explicitId}'.");
+
+        return explicitId ?? metadataId
+            ?? throw new PluginMisconfigurationException(
+                "Template ID is required either as an input or in the HTML metadata.");
+    }
 
     public static void ValidateValues(
         IReadOnlyDictionary<string, string> uploadedValues,

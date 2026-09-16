@@ -2,12 +2,6 @@
   "ConnectionDefinition": {
     "apiKey": ""
   },
-  "TestData": {
-    "templateId": "",
-    "templateLocale": "",
-    "templateTranslationId": "",
-    "campaignVariationTranslationId": "",
-    "universalContentTranslationId": ""
-  },
+
   "TestFolder": "TestFiles"
 }

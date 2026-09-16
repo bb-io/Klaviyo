@@ -74,7 +74,6 @@ public class CampaignVariationFileService(KlaviyoClient client, IFileManagementC
 
     public async Task UploadAsync(UploadCampaignVariationRequest input)
     {
-        var variationId = NormalizeCampaignVariationId(input.CampaignVariationId);
         var locale = ValidateLocale(input.Locale);
         if (input.Content is null)
             throw new PluginMisconfigurationException("Content file is required.");
@@ -92,11 +91,7 @@ public class CampaignVariationFileService(KlaviyoClient client, IFileManagementC
         var filteredHtml = TemplateHtmlFilterService.Create(
             fileText, input.Content.Name ?? "campaign-variation.html");
         var htmlFile = TranslationHtmlFileCodec.Import(filteredHtml);
-        if (htmlFile.Metadata.TryGetValue("CampaignVariationId", out var metadataVariationId) &&
-            !string.IsNullOrWhiteSpace(metadataVariationId) &&
-            !string.Equals(variationId, metadataVariationId, StringComparison.Ordinal))
-            throw new PluginMisconfigurationException(
-                $"The HTML file belongs to campaign variation '{metadataVariationId}', not '{variationId}'.");
+        var variationId = ResolveCampaignVariationId(input.CampaignVariationId, htmlFile.Metadata);
 
         var variation = await GetCampaignVariationAsync(variationId);
         ValidateEmailVariation(variation);
@@ -148,6 +143,28 @@ public class CampaignVariationFileService(KlaviyoClient client, IFileManagementC
 
     public static string[] AddTargetLocale(IEnumerable<string> existingLocales, string newLocale) =>
         existingLocales.Append(newLocale).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+    public static string ResolveCampaignVariationId(
+        string? inputVariationId,
+        IReadOnlyDictionary<string, string> metadata)
+    {
+        var explicitId = string.IsNullOrWhiteSpace(inputVariationId)
+            ? null
+            : NormalizeCampaignVariationId(inputVariationId);
+        var metadataId = metadata.TryGetValue("CampaignVariationId", out var value) &&
+                         !string.IsNullOrWhiteSpace(value)
+            ? NormalizeCampaignVariationId(value)
+            : null;
+
+        if (explicitId is not null && metadataId is not null &&
+            !string.Equals(explicitId, metadataId, StringComparison.Ordinal))
+            throw new PluginMisconfigurationException(
+                $"The HTML file belongs to campaign variation '{metadataId}', not '{explicitId}'.");
+
+        return explicitId ?? metadataId
+            ?? throw new PluginMisconfigurationException(
+                "Campaign variation ID is required either as an input or in the HTML metadata.");
+    }
 
     public static void ValidateValues(
         IReadOnlyDictionary<string, string> uploadedValues,

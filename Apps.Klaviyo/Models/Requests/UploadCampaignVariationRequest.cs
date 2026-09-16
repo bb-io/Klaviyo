@@ -7,9 +7,9 @@ namespace Apps.Klaviyo.Models.Requests;
 
 public class UploadCampaignVariationRequest
 {
-    [Display("Campaign variation ID", Description = "Campaign variation ID or campaign-variation::email:: translation ID.")]
+    [Display("Campaign variation ID", Description = "Optional. Campaign variation ID or campaign-variation::email:: translation ID. If omitted, it is read from the downloaded HTML metadata.")]
     [DataSource(typeof(CampaignVariationDataHandler))]
-    public string CampaignVariationId { get; set; } = string.Empty;
+    public string? CampaignVariationId { get; set; }
 
     [Display("Target locale", Description = "Existing or new locale to upload the translated HTML into, for example fr.")]
     [DataSource(typeof(UploadCampaignVariationLocaleDataHandler))]

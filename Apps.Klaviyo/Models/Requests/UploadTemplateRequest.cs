@@ -7,9 +7,9 @@ namespace Apps.Klaviyo.Models.Requests;
 
 public class UploadTemplateRequest
 {
-    [Display("Template ID", Description = "Template ID (U7pVWU) or template::email:: translation ID.")]
+    [Display("Template ID", Description = "Optional. Template ID or template::email:: translation ID. If omitted, it is read from the downloaded HTML metadata.")]
     [DataSource(typeof(TemplateDataHandler))]
-    public string TemplateId { get; set; } = string.Empty;
+    public string? TemplateId { get; set; }
 
     [Display("Target locale", Description = "Required existing or new locale to upload the translated HTML into, for example fr.")]
     [DataSource(typeof(UploadTemplateLocaleDataHandler))]

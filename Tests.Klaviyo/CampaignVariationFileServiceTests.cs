@@ -18,6 +18,39 @@ public class CampaignVariationFileServiceTests
     }
 
     [TestMethod]
+    public void Campaign_variation_id_is_resolved_from_downloaded_html_metadata()
+    {
+        const string variationId = "01M2GDND3A24Z8Q6T5QS9R7KBV";
+        var metadata = new Dictionary<string, string> { ["CampaignVariationId"] = variationId };
+
+        Assert.AreEqual(variationId,
+            CampaignVariationFileService.ResolveCampaignVariationId(null, metadata));
+        Assert.AreEqual(variationId,
+            CampaignVariationFileService.ResolveCampaignVariationId(
+                $"campaign-variation::email::{variationId}", metadata));
+    }
+
+    [TestMethod]
+    public void Campaign_variation_id_resolution_rejects_mismatched_input_and_metadata()
+    {
+        var metadata = new Dictionary<string, string>
+        {
+            ["CampaignVariationId"] = "01M2GDND3A24Z8Q6T5QS9R7KBV"
+        };
+
+        Assert.ThrowsException<PluginMisconfigurationException>(() =>
+            CampaignVariationFileService.ResolveCampaignVariationId("another-variation", metadata));
+    }
+
+    [TestMethod]
+    public void Campaign_variation_id_resolution_requires_input_or_metadata()
+    {
+        Assert.ThrowsException<PluginMisconfigurationException>(() =>
+            CampaignVariationFileService.ResolveCampaignVariationId(
+                null, new Dictionary<string, string>()));
+    }
+
+    [TestMethod]
     public void Translation_html_round_trip_preserves_campaign_values()
     {
         const string variationId = "01M2GDND3A24Z8Q6T5QS9R7KBV";

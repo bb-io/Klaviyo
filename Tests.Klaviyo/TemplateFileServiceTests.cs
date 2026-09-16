@@ -18,6 +18,32 @@ public class TemplateFileServiceTests
     }
 
     [TestMethod]
+    public void Template_id_is_resolved_from_downloaded_html_metadata()
+    {
+        var metadata = new Dictionary<string, string> { ["TemplateId"] = "U7pVWU" };
+
+        Assert.AreEqual("U7pVWU", TemplateFileService.ResolveTemplateId(null, metadata));
+        Assert.AreEqual("U7pVWU",
+            TemplateFileService.ResolveTemplateId("template::email::U7pVWU", metadata));
+    }
+
+    [TestMethod]
+    public void Template_id_resolution_rejects_mismatched_input_and_metadata()
+    {
+        var metadata = new Dictionary<string, string> { ["TemplateId"] = "U7pVWU" };
+
+        Assert.ThrowsException<PluginMisconfigurationException>(() =>
+            TemplateFileService.ResolveTemplateId("another-template", metadata));
+    }
+
+    [TestMethod]
+    public void Template_id_resolution_requires_input_or_metadata()
+    {
+        Assert.ThrowsException<PluginMisconfigurationException>(() =>
+            TemplateFileService.ResolveTemplateId(null, new Dictionary<string, string>()));
+    }
+
+    [TestMethod]
     public void Translation_html_round_trip_preserves_metadata_and_multiple_values()
     {
         var html = TranslationHtmlFileCodec.Export(

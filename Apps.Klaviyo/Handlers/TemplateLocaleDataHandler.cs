@@ -27,7 +27,9 @@ public class UploadTemplateLocaleDataHandler(
     public Task<IEnumerable<DataSourceItem>> GetDataAsync(
         DataSourceContext context,
         CancellationToken cancellationToken) =>
-        GetLocalesAsync(input.TemplateId, context, cancellationToken);
+        string.IsNullOrWhiteSpace(input.TemplateId)
+            ? Task.FromResult<IEnumerable<DataSourceItem>>([])
+            : GetLocalesAsync(input.TemplateId, context, cancellationToken);
 }
 
 public abstract class TemplateLocaleDataHandlerBase(InvocationContext invocationContext)
