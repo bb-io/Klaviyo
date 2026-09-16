@@ -36,6 +36,47 @@ public class ActionTests : TestBase
     }
 
     [TestMethod]
+    public async Task Download_source_template_returns_html_and_json()
+    {
+        var actions = new TemplateActions(InvocationContext, FileManager);
+        var templateId = await ResolveTemplateId(actions);
+
+        var result = await actions.DownloadTemplate(new DownloadTemplateRequest
+        {
+            TemplateId = templateId
+        });
+
+        Assert.AreEqual("text/html", result.Content.ContentType);
+        Assert.AreEqual("application/json", result.JsonFile.ContentType);
+        Assert.AreEqual($"{templateId}.source.html", result.Content.Name);
+        StringAssert.Contains(FileManager.ReadOutputText(result.Content), "<");
+        StringAssert.Contains(FileManager.ReadOutputText(result.JsonFile), templateId);
+        Console.WriteLine($"Downloaded source HTML: {result.Content.Name}");
+        Console.WriteLine($"Downloaded template JSON: {result.JsonFile.Name}");
+    }
+
+    [TestMethod]
+    public async Task Download_localized_template_returns_html_and_json()
+    {
+        var actions = new TemplateActions(InvocationContext, FileManager);
+        var (templateId, locale) = await ResolveLocalizedTemplate(actions);
+
+        var result = await actions.DownloadTemplate(new DownloadTemplateRequest
+        {
+            TemplateId = templateId,
+            Locale = locale
+        });
+
+        Assert.AreEqual("text/html", result.Content.ContentType);
+        Assert.AreEqual("application/json", result.JsonFile.ContentType);
+        Assert.AreEqual($"{templateId}.{locale}.html", result.Content.Name);
+        StringAssert.Contains(FileManager.ReadOutputText(result.Content), "<");
+        StringAssert.Contains(FileManager.ReadOutputText(result.JsonFile), templateId);
+        Console.WriteLine($"Downloaded localized HTML: {result.Content.Name}");
+        Console.WriteLine($"Downloaded template JSON: {result.JsonFile.Name}");
+    }
+
+    [TestMethod]
     public async Task Search_campaign_variations_works_with_optional_filters()
     {
         var result = await new CampaignVariationActions(InvocationContext, FileManager)
@@ -152,5 +193,41 @@ public class ActionTests : TestBase
         Assert.Inconclusive(
             $"No translation is available. Set TestData:{configurationKey} in appsettings.json to run this Get test.");
         return string.Empty;
+    }
+
+    private async Task<string> ResolveTemplateId(TemplateActions actions)
+    {
+        var configuredId = Configuration["TestData:templateId"];
+        if (!string.IsNullOrWhiteSpace(configuredId))
+            return configuredId;
+
+        var configuredTranslationId = Configuration["TestData:templateTranslationId"];
+        if (!string.IsNullOrWhiteSpace(configuredTranslationId))
+            return configuredTranslationId.Split("::", StringSplitOptions.None).Last();
+
+        var item = (await actions.SearchTemplates(new SearchTranslationsRequest())).Items.FirstOrDefault();
+        if (item is not null)
+            return item.ResourceId;
+
+        Assert.Inconclusive(
+            "No template is available. Set TestData:templateId in appsettings.json to run this Download test.");
+        return string.Empty;
+    }
+
+    private async Task<(string TemplateId, string Locale)> ResolveLocalizedTemplate(TemplateActions actions)
+    {
+        var configuredId = Configuration["TestData:templateId"];
+        var configuredLocale = Configuration["TestData:templateLocale"];
+        if (!string.IsNullOrWhiteSpace(configuredId) && !string.IsNullOrWhiteSpace(configuredLocale))
+            return (configuredId, configuredLocale);
+
+        var item = (await actions.SearchTemplates(new SearchTranslationsRequest())).Items
+            .FirstOrDefault(template => template.TargetLocales.Any());
+        if (item is not null)
+            return (item.ResourceId, item.TargetLocales.First());
+
+        Assert.Inconclusive(
+            "No localized template is available. Set TestData:templateId and TestData:templateLocale in appsettings.json.");
+        return (string.Empty, string.Empty);
     }
 }

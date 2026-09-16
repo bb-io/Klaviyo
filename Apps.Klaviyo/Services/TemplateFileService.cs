@@ -207,10 +207,11 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
             return response.Data;
         }
 
-        if (existing.Attributes.TargetLocales.Contains(locale, StringComparer.OrdinalIgnoreCase))
-            return existing;
         if (string.Equals(existing.Attributes.SourceLocale, locale, StringComparison.OrdinalIgnoreCase))
             throw new PluginMisconfigurationException("Target locale must differ from source locale.");
+
+        if (existing.Attributes.TargetLocales.Contains(locale, StringComparer.OrdinalIgnoreCase))
+            return existing;
 
         var updateBody = new
         {

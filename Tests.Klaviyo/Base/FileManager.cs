@@ -44,5 +44,12 @@ public class FileManager : IFileManagementClient
 
         return Task.FromResult(new FileReference() { Name = fileName, ContentType = contentType });
     }
+
+    public string ReadOutputText(FileReference reference)
+    {
+        var path = Path.Combine(outputFolder, reference.Name);
+        Assert.IsTrue(File.Exists(path), $"Output file not found at: {path}");
+        return File.ReadAllText(path);
+    }
 }
 

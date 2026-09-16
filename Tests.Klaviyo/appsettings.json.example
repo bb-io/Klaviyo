@@ -3,6 +3,8 @@
     "apiKey": ""
   },
   "TestData": {
+    "templateId": "",
+    "templateLocale": "",
     "templateTranslationId": "",
     "campaignVariationTranslationId": "",
     "universalContentTranslationId": ""
