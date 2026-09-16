@@ -32,11 +32,13 @@ public class TranslationService(KlaviyoClient client)
         var request = new RestRequest("translations", Method.Get)
             .AddQueryParameter("page[size]", "100");
 
-        // Klaviyo currently returns an empty collection for the documented
-        // resource_type=campaign-variation filter. Fetch the collection and apply
-        // the same resource-type restriction locally for campaign variations.
+        // Klaviyo currently returns an empty collection for some documented
+        // resource_type filters. Fetch the collection and apply the same
+        // resource-type restriction locally for these resource types.
         if (selectedResourceTypes.Count == 1 &&
-            !string.Equals(selectedResourceTypes[0], TranslationResourceTypes.CampaignVariation,
+            !selectedResourceTypes[0].Equals(TranslationResourceTypes.CampaignVariation,
+                StringComparison.OrdinalIgnoreCase) &&
+            !selectedResourceTypes[0].Equals(TranslationResourceTypes.FlowMessage,
                 StringComparison.OrdinalIgnoreCase))
             request.AddQueryParameter("filter", $"equals(resource_type,\"{selectedResourceTypes[0]}\")");
 

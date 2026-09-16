@@ -17,11 +17,11 @@ public class FlowMessageActions(InvocationContext invocationContext, IFileManage
         [ActionParameter] SearchTranslationsRequest input) =>
         new TranslationService(Client).SearchAsync(input, [TranslationResourceTypes.FlowMessage]);
 
-    [Action("Download flow message", Description = "Downloads a flow message translation as XLIFF 2.0.")]
-    public Task<DownloadTranslationResponse> DownloadFlowMessage([ActionParameter] DownloadTranslationRequest input) =>
-        new TranslationFileService(Client, fileManagementClient).DownloadAsync(input, TranslationResourceTypes.FlowMessage);
+    [Action("Download flow message", Description = "Downloads source or localized flow message values as HTML, with flow message data as JSON.")]
+    public Task<DownloadFlowMessageResponse> DownloadFlowMessage([ActionParameter] DownloadFlowMessageRequest input) =>
+        new FlowMessageFileService(Client, fileManagementClient).DownloadAsync(input);
 
-    [Action("Upload flow message", Description = "Uploads translated XLIFF values to a flow message.")]
-    public Task UploadFlowMessage([ActionParameter] UploadTranslationRequest input) =>
-        new TranslationFileService(Client, fileManagementClient).UploadAsync(input, TranslationResourceTypes.FlowMessage);
+    [Action("Upload flow message", Description = "Uploads translated HTML to the specified existing or new flow message locale.")]
+    public Task UploadFlowMessage([ActionParameter] UploadFlowMessageRequest input) =>
+        new FlowMessageFileService(Client, fileManagementClient).UploadAsync(input);
 }
