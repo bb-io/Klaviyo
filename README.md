@@ -12,7 +12,7 @@ Documentation coming soon.
 
 Use **Download template** without a locale to export the source template as HTML and JSON. Provide the optional locale to download an existing localization. Translate the HTML, then pass it to **Upload template** with the target locale. If that locale does not exist yet, the upload action adds it while preserving the template's existing locales. Set **Source locale** when translations have not been enabled for the template yet.
 
-Template HTML is created through Blackbird Filters so translation actions can protect and restore its inline tags. The JSON file is reference data; the upload action takes the translated HTML file.
+Template HTML is created through Blackbird Filters so translation actions can protect and restore its inline tags. The file stores the template ID in `blackbird-TemplateId` metadata and wraps every Klaviyo translation value in an element with a `data-klaviyo-translation-key` attribute. This allows the upload action to map every translated element back to its Klaviyo value ID without assuming that a template only contains a body value. The JSON file is reference data; the upload action takes the translated HTML file.
 
 ## Feedback
 
