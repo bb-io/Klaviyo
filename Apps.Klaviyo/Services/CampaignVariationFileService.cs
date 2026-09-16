@@ -192,10 +192,27 @@ public class CampaignVariationFileService(KlaviyoClient client, IFileManagementC
 
     private async Task<RelatedResourceDto> GetCampaignVariationAsync(string variationId)
     {
-        var request = new RestRequest("campaign-variations/{variationId}", Method.Get)
-            .AddUrlSegment("variationId", variationId);
-        var response = await client.ExecuteWithErrorHandling<JsonApiSingleResponse<RelatedResourceDto>>(request);
-        return response.Data ?? throw new PluginApplicationException(
+        var request = new RestRequest("campaign-messages", Method.Get)
+            .AddQueryParameter("include", "campaign-variations")
+            .AddQueryParameter("page[size]", "100");
+        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        while (true)
+        {
+            var response = await client.ExecuteWithErrorHandling<JsonApiListResponse<RelatedResourceDto>>(request);
+            var variation = response.Included.FirstOrDefault(item =>
+                string.Equals(item.Type, ResourceType, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(item.Id, variationId, StringComparison.Ordinal));
+            if (variation is not null)
+                return variation;
+
+            var next = response.Links?.Next;
+            if (string.IsNullOrWhiteSpace(next) || !visited.Add(next))
+                break;
+            request = new RestRequest(next, Method.Get);
+        }
+
+        throw new PluginApplicationException(
             $"Klaviyo returned no campaign variation '{variationId}'.");
     }
 

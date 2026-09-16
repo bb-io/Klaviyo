@@ -11,7 +11,8 @@ public class CampaignVariationDataHandler(InvocationContext invocationContext)
     public async Task<IEnumerable<DataSourceItem>> GetDataAsync(
         DataSourceContext context, CancellationToken cancellationToken)
     {
-        var request = new RestRequest("campaign-variations", Method.Get)
+        var request = new RestRequest("campaign-messages", Method.Get)
+            .AddQueryParameter("include", "campaign-variations")
             .AddQueryParameter("page[size]", "100");
         var search = context.SearchString?.Trim() ?? string.Empty;
         var results = new List<DataSourceItem>();
@@ -21,7 +22,7 @@ public class CampaignVariationDataHandler(InvocationContext invocationContext)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<RelatedResourceDto>>(request);
-            results.AddRange(response.Data
+            results.AddRange(response.Included
                 .Where(item => string.Equals(item.Type, "campaign-variation", StringComparison.OrdinalIgnoreCase))
                 .Select(item => new
                 {
