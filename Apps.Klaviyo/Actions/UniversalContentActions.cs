@@ -21,8 +21,13 @@ public class UniversalContentActions(InvocationContext invocationContext, IFileM
     [Action("Get universal content",
         Description = "Gets universal content associated with a translation.")]
     public Task<UniversalContentResponse> GetUniversalContent(
-        [ActionParameter] TranslationIdentifier input) =>
-        new TranslationService(Client).GetUniversalContentAsync(input.TranslationId);
+        [ActionParameter] UniversalContentIdentifier input)
+    {
+        var universalContentId = UniversalContentFileService.NormalizeUniversalContentId(
+            input.UniversalContentId);
+        return new TranslationService(Client).GetUniversalContentAsync(
+            $"template-universal-content::email::{universalContentId}");
+    }
 
     [Action("Download universal content", Description = "Downloads source or localized universal content values as HTML, with universal content data as JSON.")]
     public Task<DownloadUniversalContentResponse> DownloadUniversalContent(

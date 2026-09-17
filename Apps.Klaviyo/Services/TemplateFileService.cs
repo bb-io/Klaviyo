@@ -16,7 +16,7 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
 {
     public async Task<DownloadTemplateResponse> DownloadAsync(DownloadTemplateRequest input)
     {
-        var templateId = ValidateTemplateId(input.TemplateId);
+        var templateId = NormalizeTemplateId(input.TemplateId);
         var template = await GetTemplateAsync(templateId);
         var locale = input.Locale?.Trim();
         var translation = await FindTranslationAsync(templateId);
@@ -169,10 +169,10 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
     {
         var explicitId = string.IsNullOrWhiteSpace(inputTemplateId)
             ? null
-            : ValidateTemplateId(inputTemplateId);
+            : NormalizeTemplateId(inputTemplateId);
         var metadataId = metadata.TryGetValue("TemplateId", out var value) &&
                          !string.IsNullOrWhiteSpace(value)
-            ? ValidateTemplateId(value)
+            ? NormalizeTemplateId(value)
             : null;
 
         if (explicitId is not null && metadataId is not null &&
@@ -305,7 +305,7 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
     private async Task<FileReference> SaveAsync(string content, string mediaType, string fileName) =>
         await fileManagementClient.UploadAsync(new MemoryStream(Encoding.UTF8.GetBytes(content)), mediaType, fileName);
 
-    private static string ValidateTemplateId(string? templateId)
+    public static string NormalizeTemplateId(string? templateId)
     {
         if (string.IsNullOrWhiteSpace(templateId))
             throw new PluginMisconfigurationException("Template ID is required.");

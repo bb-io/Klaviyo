@@ -21,8 +21,13 @@ public class CampaignVariationActions(InvocationContext invocationContext, IFile
     [Action("Get campaign variation",
         Description = "Gets campaign variation associated with a translation.")]
     public Task<CampaignVariationResponse> GetCampaignVariation(
-        [ActionParameter] TranslationIdentifier input) =>
-        new TranslationService(Client).GetCampaignVariationAsync(input.TranslationId);
+        [ActionParameter] CampaignVariationIdentifier input)
+    {
+        var variationId = CampaignVariationFileService.NormalizeCampaignVariationId(
+            input.CampaignVariationId);
+        return new TranslationService(Client).GetCampaignVariationAsync(
+            $"campaign-variation::email::{variationId}");
+    }
 
     [Action("Download campaign variation", Description = "Downloads source or localized campaign variation values as HTML, with campaign variation data as JSON.")]
     public Task<DownloadCampaignVariationResponse> DownloadCampaignVariation(

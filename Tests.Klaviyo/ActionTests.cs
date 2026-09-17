@@ -31,7 +31,7 @@ public class ActionTests : TestBase
             "templateTranslationId",
             () => actions.SearchTemplates(new SearchTranslationsRequest()));
 
-        var result = await actions.GetTemplate(new TranslationIdentifier { TranslationId = translationId });
+        var result = await actions.GetTemplate(new TemplateIdentifier { TemplateId = translationId });
 
         Assert.IsFalse(string.IsNullOrWhiteSpace(result.Id));
     }
@@ -102,7 +102,7 @@ public class ActionTests : TestBase
             () => actions.SearchCampaignVariations(new SearchTranslationsRequest()));
 
         var result = await actions.GetCampaignVariation(
-            new TranslationIdentifier { TranslationId = translationId });
+            new CampaignVariationIdentifier { CampaignVariationId = translationId });
 
         Assert.IsFalse(string.IsNullOrWhiteSpace(result.Id));
     }
@@ -175,7 +175,7 @@ public class ActionTests : TestBase
             () => actions.SearchUniversalContent(new SearchTranslationsRequest()));
 
         var result = await actions.GetUniversalContent(
-            new TranslationIdentifier { TranslationId = translationId });
+            new UniversalContentIdentifier { UniversalContentId = translationId });
 
         Assert.IsFalse(string.IsNullOrWhiteSpace(result.Id));
     }

@@ -18,8 +18,11 @@ public class TemplateActions(InvocationContext invocationContext, IFileManagemen
         new TranslationService(Client).SearchAsync(input, [TranslationResourceTypes.Template]);
 
     [Action("Get template", Description = "Gets a template associated with a translation.")]
-    public Task<TemplateResponse> GetTemplate([ActionParameter] TranslationIdentifier input) =>
-        new TranslationService(Client).GetTemplateAsync(input.TranslationId);
+    public Task<TemplateResponse> GetTemplate([ActionParameter] TemplateIdentifier input)
+    {
+        var templateId = TemplateFileService.NormalizeTemplateId(input.TemplateId);
+        return new TranslationService(Client).GetTemplateAsync($"template::email::{templateId}");
+    }
 
     [Action("Download template", Description = "Downloads the source template or an optional locale as HTML, with template data as JSON.")]
     public Task<DownloadTemplateResponse> DownloadTemplate([ActionParameter] DownloadTemplateRequest input) =>
