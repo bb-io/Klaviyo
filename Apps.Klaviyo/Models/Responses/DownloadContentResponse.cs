@@ -4,8 +4,11 @@ using Blackbird.Applications.SDK.Blueprints.Interfaces.CMS;
 
 namespace Apps.Klaviyo.Models.Responses;
 
-public class DownloadTranslationResponse : IDownloadContentOutput
+public class DownloadContentResponse : IDownloadContentOutput
 {
-    [Display("Content (XLIFF)")]
+    [Display("Content (HTML)")]
     public FileReference Content { get; set; } = default!;
+
+    [Display("Content data (JSON)")]
+    public FileReference JsonFile { get; set; } = default!;
 }
