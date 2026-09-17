@@ -9,7 +9,7 @@ namespace Apps.Klaviyo.Models.Requests;
 public class UploadContentRequest : ContentTypeFilter, IUploadContentInput
 {
     [Display("Content ID", Description = "Optional. If omitted, the ID is read from the downloaded HTML metadata.")]
-    [DataSource(typeof(ContentDataHandler))]
+    [DataSource(typeof(UploadContentDataHandler))]
     public string? ContentId { get; set; }
 
     [Display("Target locale", Description = "Existing or new locale to upload the translated HTML into, for example fr.")]

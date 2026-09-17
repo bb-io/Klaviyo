@@ -7,18 +7,38 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 
 namespace Apps.Klaviyo.Handlers;
 
-public class ContentDataHandler(
+public class DownloadContentDataHandler(
     InvocationContext invocationContext,
-    [ActionParameter] ContentTypeFilter filter) : IAsyncDataSourceItemHandler
+    [ActionParameter] DownloadContentRequest input)
+    : ContentDataHandlerBase(invocationContext, input.ContentType), IAsyncDataSourceItemHandler
 {
     public Task<IEnumerable<DataSourceItem>> GetDataAsync(
         DataSourceContext context,
+        CancellationToken cancellationToken) => GetContentAsync(context, cancellationToken);
+}
+
+public class UploadContentDataHandler(
+    InvocationContext invocationContext,
+    [ActionParameter] UploadContentRequest input)
+    : ContentDataHandlerBase(invocationContext, input.ContentType), IAsyncDataSourceItemHandler
+{
+    public Task<IEnumerable<DataSourceItem>> GetDataAsync(
+        DataSourceContext context,
+        CancellationToken cancellationToken) => GetContentAsync(context, cancellationToken);
+}
+
+public abstract class ContentDataHandlerBase(
+    InvocationContext invocationContext,
+    string contentType)
+{
+    protected Task<IEnumerable<DataSourceItem>> GetContentAsync(
+        DataSourceContext context,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(filter.ContentType))
+        if (string.IsNullOrWhiteSpace(contentType))
             throw new PluginMisconfigurationException("Please select 'Content type' first.");
 
-        return filter.ContentType.Trim().ToLowerInvariant() switch
+        return contentType.Trim().ToLowerInvariant() switch
         {
             TranslationResourceTypes.Template =>
                 new TemplateDataHandler(invocationContext).GetDataAsync(context, cancellationToken),

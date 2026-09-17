@@ -8,7 +8,7 @@ namespace Apps.Klaviyo.Models.Requests;
 public class DownloadContentRequest : ContentTypeFilter, IDownloadContentInput
 {
     [Display("Content ID", Description = "ID of the selected content item.")]
-    [DataSource(typeof(ContentDataHandler))]
+    [DataSource(typeof(DownloadContentDataHandler))]
     public string ContentId { get; set; } = string.Empty;
 
     [Display("Locale", Description = "Optional locale to download. Omit it to download the source content.")]
