@@ -30,6 +30,7 @@ public class UploadContentDataHandler(
 public abstract class ContentDataHandlerBase(
     InvocationContext invocationContext,
     string contentType)
+    : Invocable(invocationContext)
 {
     protected Task<IEnumerable<DataSourceItem>> GetContentAsync(
         DataSourceContext context,
@@ -41,13 +42,13 @@ public abstract class ContentDataHandlerBase(
         return contentType.Trim().ToLowerInvariant() switch
         {
             TranslationResourceTypes.Template =>
-                new TemplateDataHandler(invocationContext).GetDataAsync(context, cancellationToken),
+                new TemplateDataHandler(InvocationContext).GetDataAsync(context, cancellationToken),
             TranslationResourceTypes.CampaignVariation =>
-                new CampaignVariationDataHandler(invocationContext).GetDataAsync(context, cancellationToken),
+                new CampaignVariationDataHandler(InvocationContext).GetDataAsync(context, cancellationToken),
             TranslationResourceTypes.FlowMessage =>
-                new FlowMessageDataHandler(invocationContext).GetDataAsync(context, cancellationToken),
+                new FlowMessageDataHandler(InvocationContext).GetDataAsync(context, cancellationToken),
             TranslationResourceTypes.UniversalContent =>
-                new UniversalContentDataHandler(invocationContext).GetDataAsync(context, cancellationToken),
+                new UniversalContentDataHandler(InvocationContext).GetDataAsync(context, cancellationToken),
             _ => throw new PluginMisconfigurationException(
                 "Unsupported content type. Select a value from the available options.")
         };
