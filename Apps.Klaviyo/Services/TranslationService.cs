@@ -39,6 +39,8 @@ public class TranslationService(KlaviyoClient client)
             !selectedResourceTypes[0].Equals(TranslationResourceTypes.CampaignVariation,
                 StringComparison.OrdinalIgnoreCase) &&
             !selectedResourceTypes[0].Equals(TranslationResourceTypes.FlowMessage,
+                StringComparison.OrdinalIgnoreCase) &&
+            !selectedResourceTypes[0].Equals(TranslationResourceTypes.UniversalContent,
                 StringComparison.OrdinalIgnoreCase))
             request.AddQueryParameter("filter", $"equals(resource_type,\"{selectedResourceTypes[0]}\")");
 

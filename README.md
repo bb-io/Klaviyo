@@ -26,6 +26,12 @@ Use **Download flow message** without a locale to export all source values as HT
 
 The HTML stores the flow message ID in `blackbird-FlowMessageId` metadata and uses `data-klaviyo-translation-key` attributes to preserve the mapping. The Flow message ID input is optional on upload because it is read from that metadata. **Upload flow message** accepts an existing or new target locale, preserves all existing target locales, and updates the translated values in the same request. **Source locale** is only required when translations have not yet been configured for the flow message.
 
+### Universal content translations
+
+Use **Download universal content** without a locale to export all source values as HTML and JSON, or select an existing locale to export its translations. Text and HTML content, button labels and links, image URLs and alt text, and other translatable values are exported as separate elements identified by their Klaviyo value IDs.
+
+The HTML stores the universal content ID in `blackbird-UniversalContentId` metadata and uses `data-klaviyo-translation-key` attributes to preserve the mapping. The Universal content ID input is optional on upload because it is read from that metadata. **Upload universal content** accepts an existing or new target locale, preserves all existing target locales, and updates the translated values in the same request. **Source locale** is only required when translations have not yet been configured for the universal content.
+
 ## Feedback
 
 Do you want to use this app or do you have feedback on our implementation? Reach out to us using the [established channels](https://www.blackbird.io/) or create an issue.

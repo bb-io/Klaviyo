@@ -24,11 +24,12 @@ public class UniversalContentActions(InvocationContext invocationContext, IFileM
         [ActionParameter] TranslationIdentifier input) =>
         new TranslationService(Client).GetUniversalContentAsync(input.TranslationId);
 
-    [Action("Download universal content", Description = "Downloads universal content translation as XLIFF 2.0.")]
-    public Task<DownloadTranslationResponse> DownloadUniversalContent([ActionParameter] DownloadTranslationRequest input) =>
-        new TranslationFileService(Client, fileManagementClient).DownloadAsync(input, TranslationResourceTypes.UniversalContent);
+    [Action("Download universal content", Description = "Downloads source or localized universal content values as HTML, with universal content data as JSON.")]
+    public Task<DownloadUniversalContentResponse> DownloadUniversalContent(
+        [ActionParameter] DownloadUniversalContentRequest input) =>
+        new UniversalContentFileService(Client, fileManagementClient).DownloadAsync(input);
 
-    [Action("Upload universal content", Description = "Uploads translated XLIFF values to universal content.")]
-    public Task UploadUniversalContent([ActionParameter] UploadTranslationRequest input) =>
-        new TranslationFileService(Client, fileManagementClient).UploadAsync(input, TranslationResourceTypes.UniversalContent);
+    [Action("Upload universal content", Description = "Uploads translated HTML to the specified existing or new universal content locale.")]
+    public Task UploadUniversalContent([ActionParameter] UploadUniversalContentRequest input) =>
+        new UniversalContentFileService(Client, fileManagementClient).UploadAsync(input);
 }
