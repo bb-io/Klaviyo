@@ -6,31 +6,63 @@ Blackbird is the new automation backbone for the language technology industry. B
 
 <!-- begin docs -->
 
-Documentation coming soon.
+Klaviyo is a marketing automation platform that helps brands deliver personalized customer experiences across email, SMS, mobile push, and web.
 
-### Template translations
+## Before setting up
 
-Use **Download template** without a locale to export the source template as HTML and JSON. Provide the optional locale to download an existing localization. Translate the HTML, then pass it to **Upload template** with the target locale. If that locale does not exist yet, the upload action adds it while preserving the template's existing locales. The Template ID input is optional on upload because it is read from the downloaded HTML metadata. Set **Source locale** when translations have not been enabled for the template yet.
+Create a private API key under **Settings > API keys** and grant it the following scopes:
 
-Template HTML is created through Blackbird Filters so translation actions can protect and restore its inline tags. The file stores the template ID in `blackbird-TemplateId` metadata and wraps every Klaviyo translation value in an element with a `data-klaviyo-translation-key` attribute. This allows the upload action to map every translated element back to its Klaviyo value ID without assuming that a template only contains a body value. The JSON file is reference data; the upload action takes the translated HTML file.
+- `translations:read`
+- `translations:write`
 
-### Campaign variation translations
+For more information, see Klaviyo's [private API key guide](https://help.klaviyo.com/hc/en-us/articles/7423954176283).
 
-Use **Download campaign variation** without a locale to export all source values as HTML and JSON, or select an existing locale to export its translations. Campaign fields and editor blocks such as subject, preview text, sender name, text content, links, and alt text are exported as separate elements identified by their Klaviyo value IDs.
+## Connecting
 
-The HTML stores the variation ID in `blackbird-CampaignVariationId` metadata and uses `data-klaviyo-translation-key` attributes to preserve the mapping. The Campaign variation ID input is optional on upload because it is read from that metadata. **Upload campaign variation** accepts an existing or new target locale. When adding a locale, it preserves all existing target locales and updates the translated values in the same request. **Source locale** is only required when translations have not yet been configured for the variation.
+1. Navigate to **Apps** and search for Klaviyo.
+2. Select **Add Connection**.
+3. Enter a name for the connection.
+4. Enter your Klaviyo private API key.
+5. Select **Connect**.
 
-### Flow message translations
+## Actions
 
-Use **Download flow message** without a locale to export all source values as HTML and JSON, or select an existing locale to export its translations. Subject, preview text, sender name, block content, links, alt text, and other translatable values are exported as separate elements identified by their Klaviyo value IDs.
+### Templates
 
-The HTML stores the flow message ID in `blackbird-FlowMessageId` metadata and uses `data-klaviyo-translation-key` attributes to preserve the mapping. The Flow message ID input is optional on upload because it is read from that metadata. **Upload flow message** accepts an existing or new target locale, preserves all existing target locales, and updates the translated values in the same request. **Source locale** is only required when translations have not yet been configured for the flow message.
+- **Search templates** returns templates with configured translations and supports filtering by channel and update date.
+- **Get template** returns the selected template.
+- **Download template** downloads the source or a selected translation as HTML and JSON files.
+- **Upload template** uploads translated HTML to an existing or new locale.
 
-### Universal content translations
+### Campaign variations
 
-Use **Download universal content** without a locale to export all source values as HTML and JSON, or select an existing locale to export its translations. Text and HTML content, button labels and links, image URLs and alt text, and other translatable values are exported as separate elements identified by their Klaviyo value IDs.
+- **Search campaign variations** returns campaign variations with configured translations and supports filtering by channel and update date.
+- **Get campaign variation** returns the selected campaign variation.
+- **Download campaign variation** downloads the source or a selected translation as HTML and JSON files.
+- **Upload campaign variation** uploads translated HTML to an existing or new locale.
 
-The HTML stores the universal content ID in `blackbird-UniversalContentId` metadata and uses `data-klaviyo-translation-key` attributes to preserve the mapping. The Universal content ID input is optional on upload because it is read from that metadata. **Upload universal content** accepts an existing or new target locale, preserves all existing target locales, and updates the translated values in the same request. **Source locale** is only required when translations have not yet been configured for the universal content.
+### Flow messages
+
+- **Search flow messages** returns flow messages with configured translations and supports filtering by channel and update date.
+- **Download flow message** downloads the source or a selected translation as HTML and JSON files.
+- **Upload flow message** uploads translated HTML to an existing or new locale.
+
+### Universal content
+
+- **Search universal content** returns universal content with configured translations and supports filtering by channel and update date.
+- **Get universal content** returns the selected universal content.
+- **Download universal content** downloads the source or a selected translation as HTML and JSON files.
+- **Upload universal content** uploads translated HTML to an existing or new locale.
+
+### Content
+
+- **Search content** returns all supported content and supports filtering by content type, channel, and update date.
+- **Download content** downloads the selected content as HTML and JSON files.
+- **Upload content** uploads translated HTML to the selected content type and locale.
+
+## Events
+
+- **On content added or updated** triggers when supported Klaviyo content is added or updated. The event can be filtered by content type.
 
 ## Feedback
 

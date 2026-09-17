@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Product>Klaviyo [Beta]</Product>
-        <Description>Klaviyo connector for managing translatable content.</Description>
+        <Description>Klaviyo is a marketing automation platform that helps brands deliver personalized customer experiences across email, SMS, mobile push, and web.</Description>
         <Version>1.0.1</Version>
         <AssemblyName>Apps.Klaviyo</AssemblyName>
     </PropertyGroup>
@@ -17,5 +17,9 @@
         <PackageReference Include="Blackbird.Filters" Version="1.2.12" />
         <PackageReference Include="HtmlAgilityPack" Version="1.12.3" />
     </ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource CopyToOutputDirectory="Always" Include="image\icon.png" />
+	</ItemGroup>
 
 </Project>
