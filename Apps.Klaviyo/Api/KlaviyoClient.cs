@@ -14,6 +14,7 @@ namespace Apps.Klaviyo.Api;
 public class KlaviyoClient : BlackBirdRestClient
 {
     private const string ApiRevision = "2026-07-15.pre";
+    private const int MaxFallbackErrorLength = 1000;
 
     public KlaviyoClient(IEnumerable<AuthenticationCredentialsProvider> creds) : base(new()
     {
@@ -75,9 +76,13 @@ public class KlaviyoClient : BlackBirdRestClient
 
     protected override Exception ConfigureErrorException(RestResponse response)
     {
-        var fallbackMessage = response.ErrorMessage
-                              ?? response.Content
-                              ?? response.StatusCode.ToString();
+        var fallbackMessage = !string.IsNullOrWhiteSpace(response.Content)
+            ? response.Content.Trim()
+            : !string.IsNullOrWhiteSpace(response.ErrorMessage)
+                ? response.ErrorMessage.Trim()
+                : response.StatusCode.ToString();
+        if (fallbackMessage.Length > MaxFallbackErrorLength)
+            fallbackMessage = fallbackMessage[..(MaxFallbackErrorLength - 3)] + "...";
 
         if (string.IsNullOrWhiteSpace(response.Content))
             return new PluginApplicationException($"Request failed: {fallbackMessage}");

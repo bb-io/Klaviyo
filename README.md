@@ -14,6 +14,7 @@ Create a private API key under **Settings > API keys** and grant it the followin
 
 - `translations:read`
 - `translations:write`
+- `campaigns:read`
 
 For more information, see Klaviyo's [private API key guide](https://help.klaviyo.com/hc/en-us/articles/7423954176283).
 
@@ -44,6 +45,7 @@ For more information, see Klaviyo's [private API key guide](https://help.klaviyo
 ### Flow messages
 
 - **Search flow messages** returns flow messages with configured translations and supports filtering by channel and update date.
+- **Get flow message** returns the selected flow message associated with a translation.
 - **Download flow message** downloads the source or a selected translation as HTML and JSON files.
 - **Upload flow message** uploads translated HTML to an existing or new locale.
 

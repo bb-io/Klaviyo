@@ -1,4 +1,5 @@
 using Apps.Klaviyo.Constants;
+using Apps.Klaviyo.Models.Identifiers;
 using Apps.Klaviyo.Models.Requests;
 using Apps.Klaviyo.Models.Responses;
 using Apps.Klaviyo.Services;
@@ -16,6 +17,14 @@ public class FlowMessageActions(InvocationContext invocationContext, IFileManage
     public Task<SearchTranslationsResponse> SearchFlowMessages(
         [ActionParameter] SearchTranslationsRequest input) =>
         new TranslationService(Client).SearchAsync(input, [TranslationResourceTypes.FlowMessage]);
+
+    [Action("Get flow message", Description = "Gets flow message associated with a translation.")]
+    public Task<FlowMessageResponse> GetFlowMessage([ActionParameter] FlowMessageIdentifier input)
+    {
+        var flowMessageId = FlowMessageFileService.NormalizeFlowMessageId(input.FlowMessageId);
+        return new TranslationService(Client).GetFlowMessageAsync(
+            $"flow-message::email::{flowMessageId}");
+    }
 
     [Action("Download flow message", Description = "Downloads source or localized flow message values as HTML, with flow message data as JSON.")]
     public Task<DownloadFlowMessageResponse> DownloadFlowMessage([ActionParameter] DownloadFlowMessageRequest input) =>

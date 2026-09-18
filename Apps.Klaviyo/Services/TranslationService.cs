@@ -47,14 +47,8 @@ public class TranslationService(KlaviyoClient client)
         request.AddQueryParameter("include", string.Join(',', selectedResourceTypes));
 
         var items = new List<TranslationResponse>();
-        var visitedPages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        while (true)
+        await foreach (var response in client.PaginateAsync<TranslationDto>(request))
         {
-            var response = await client.ExecuteWithErrorHandling<JsonApiListResponse<TranslationDto>>(request);
-            if (response is null)
-                break;
-
             var included = response.Included
                 .GroupBy(item => $"{item.Type}::{item.Id}")
                 .ToDictionary(group => group.Key, group => group.First());
@@ -62,12 +56,6 @@ public class TranslationService(KlaviyoClient client)
             items.AddRange(response.Data
                 .Select(item => MapTranslation(item, included))
                 .Where(item => Matches(item, selectedResourceTypes, selectedChannels, input)));
-
-            var next = response.Links?.Next;
-            if (string.IsNullOrWhiteSpace(next) || !visitedPages.Add(next))
-                break;
-
-            request = new RestRequest(next, Method.Get);
         }
 
         return new SearchTranslationsResponse
@@ -128,6 +116,22 @@ public class TranslationService(KlaviyoClient client)
             Name = attributes.SelectToken("definition.name")?.ToString(),
             Channel = attributes.SelectToken("definition.details.channel")?.ToString()
                       ?? StringValue(attributes, "channel"),
+            Definition = JsonValue(attributes, "definition"),
+            Created = DateValue(attributes, "created"),
+            Updated = DateValue(attributes, "updated")
+        };
+    }
+
+    public async Task<FlowMessageResponse> GetFlowMessageAsync(string translationId)
+    {
+        var resource = await GetRelatedResourceAsync(translationId, TranslationResourceTypes.FlowMessage);
+        var attributes = resource.Attributes;
+
+        return new FlowMessageResponse
+        {
+            Id = resource.Id,
+            Name = StringValue(attributes, "name"),
+            Channel = StringValue(attributes, "channel"),
             Definition = JsonValue(attributes, "definition"),
             Created = DateValue(attributes, "created"),
             Updated = DateValue(attributes, "updated")
