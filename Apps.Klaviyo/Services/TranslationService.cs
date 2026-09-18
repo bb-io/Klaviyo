@@ -109,7 +109,6 @@ public class TranslationService(KlaviyoClient client)
             Id = resource.Id,
             Name = StringValue(attributes, "name"),
             EditorType = StringValue(attributes, "editor_type"),
-            Html = StringValue(attributes, "html"),
             Text = StringValue(attributes, "text"),
             Amp = StringValue(attributes, "amp"),
             Definition = JsonValue(attributes, "definition"),

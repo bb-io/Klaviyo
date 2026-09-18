@@ -13,9 +13,6 @@ public class TemplateResponse
     [Display("Editor type")]
     public string? EditorType { get; set; }
 
-    [Display("HTML")]
-    public string? Html { get; set; }
-
     [Display("Plain text")]
     public string? Text { get; set; }
 
