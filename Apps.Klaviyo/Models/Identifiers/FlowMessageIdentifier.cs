@@ -6,7 +6,7 @@ namespace Apps.Klaviyo.Models.Identifiers;
 
 public class FlowMessageIdentifier
 {
-    [Display("Flow message ID", Description = "Flow message ID or flow-message::email:: translation ID.")]
+    [Display("Flow message ID", Description = "ID of the flow message.")]
     [DataSource(typeof(FlowMessageDataHandler))]
     public string FlowMessageId { get; set; } = string.Empty;
 }

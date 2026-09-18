@@ -91,18 +91,8 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
         if (input.Content is null)
             throw new PluginMisconfigurationException("Content file is required.");
 
-        var extension = Path.GetExtension(input.Content.Name ?? string.Empty).ToLowerInvariant();
-        if (extension is not (".html" or ".htm"))
-            throw new PluginMisconfigurationException("Upload template accepts HTML files only.");
-
         using var stream = await fileManagementClient.DownloadAsync(input.Content);
-        using var reader = new StreamReader(stream, Encoding.UTF8);
-        var fileText = await reader.ReadToEndAsync();
-        if (string.IsNullOrWhiteSpace(fileText))
-            throw new PluginMisconfigurationException("Content file is empty.");
-
-        var filteredHtml = TemplateHtmlFilterService.Create(fileText, input.Content.Name ?? "template.html");
-        var htmlFile = TranslationHtmlFileCodec.Import(filteredHtml);
+        var htmlFile = await TranslationContentReader.ReadAsync(stream, input.Content.Name);
         var templateId = ResolveTemplateId(input.TemplateId, htmlFile.Metadata);
 
         var existing = await FindTranslationAsync(templateId);
@@ -191,15 +181,6 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
         string templateId)
     {
         ValidateValueIds(uploadedValues, currentValues, templateId);
-        var currentById = currentValues.ToDictionary(value => value.Id, StringComparer.Ordinal);
-        foreach (var (id, translatedValue) in uploadedValues)
-        {
-            var sourceFragment = TranslationHtmlFileCodec.ToFragment(currentById[id].SourceValue);
-            var sourceDocument = $"<html><head></head><body>{sourceFragment}</body></html>";
-            var filteredSource = TemplateHtmlFilterService.Create(sourceDocument, "template-value.html");
-            filteredSource = TranslationHtmlFileCodec.ToFragment(filteredSource);
-            TranslationFileCodec.ValidateHtmlTranslation(filteredSource, translatedValue, id);
-        }
     }
 
     public static void ValidateValueIds(

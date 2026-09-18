@@ -6,7 +6,7 @@ namespace Apps.Klaviyo.Models.Requests;
 
 public class DownloadTemplateRequest
 {
-    [Display("Template ID", Description = "Template ID (U7pVWU) or template::email:: translation ID.")]
+    [Display("Template ID", Description = "ID of the template.")]
     [DataSource(typeof(TemplateDataHandler))]
     public string TemplateId { get; set; } = string.Empty;
 

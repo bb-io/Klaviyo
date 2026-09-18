@@ -6,7 +6,7 @@ namespace Apps.Klaviyo.Models.Requests;
 
 public class DownloadCampaignVariationRequest
 {
-    [Display("Campaign variation ID", Description = "Campaign variation ID or campaign-variation::email:: translation ID.")]
+    [Display("Campaign variation ID", Description = "ID of the campaign variation.")]
     [DataSource(typeof(CampaignVariationDataHandler))]
     public string CampaignVariationId { get; set; } = string.Empty;
 

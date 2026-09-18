@@ -77,19 +77,8 @@ public class FlowMessageFileService(KlaviyoClient client, IFileManagementClient 
         if (input.Content is null)
             throw new PluginMisconfigurationException("Content file is required.");
 
-        var extension = Path.GetExtension(input.Content.Name ?? string.Empty).ToLowerInvariant();
-        if (extension is not (".html" or ".htm"))
-            throw new PluginMisconfigurationException("Upload flow message accepts HTML files only.");
-
         using var stream = await fileManagementClient.DownloadAsync(input.Content);
-        using var reader = new StreamReader(stream, Encoding.UTF8);
-        var fileText = await reader.ReadToEndAsync();
-        if (string.IsNullOrWhiteSpace(fileText))
-            throw new PluginMisconfigurationException("Content file is empty.");
-
-        var filteredHtml = TemplateHtmlFilterService.Create(
-            fileText, input.Content.Name ?? "flow-message.html");
-        var htmlFile = TranslationHtmlFileCodec.Import(filteredHtml);
+        var htmlFile = await TranslationContentReader.ReadAsync(stream, input.Content.Name);
         var flowMessageId = ResolveFlowMessageId(input.FlowMessageId, htmlFile.Metadata);
 
         var flowMessage = await GetFlowMessageAsync(flowMessageId);
@@ -170,21 +159,12 @@ public class FlowMessageFileService(KlaviyoClient client, IFileManagementClient 
         IReadOnlyCollection<TranslationValueDto> currentValues,
         string flowMessageId)
     {
-        var currentById = currentValues.ToDictionary(value => value.Id, StringComparer.Ordinal);
-        var unknownIds = uploadedValues.Keys.Where(id => !currentById.ContainsKey(id)).ToArray();
+        var currentIds = currentValues.Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
+        var unknownIds = uploadedValues.Keys.Where(id => !currentIds.Contains(id)).ToArray();
         if (unknownIds.Length > 0)
             throw new PluginMisconfigurationException(
                 $"The HTML file contains value IDs that do not belong to flow message '{flowMessageId}': " +
                 string.Join(", ", unknownIds));
-
-        foreach (var (id, translatedValue) in uploadedValues)
-        {
-            var sourceFragment = TranslationHtmlFileCodec.ToFragment(currentById[id].SourceValue);
-            var sourceDocument = $"<html><head></head><body>{sourceFragment}</body></html>";
-            var filteredSource = TemplateHtmlFilterService.Create(sourceDocument, "flow-message-value.html");
-            filteredSource = TranslationHtmlFileCodec.ToFragment(filteredSource);
-            TranslationFileCodec.ValidateHtmlTranslation(filteredSource, translatedValue, id);
-        }
     }
 
     public static string NormalizeFlowMessageId(string? flowMessageId)

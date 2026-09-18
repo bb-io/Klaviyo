@@ -77,19 +77,8 @@ public class UniversalContentFileService(KlaviyoClient client, IFileManagementCl
         if (input.Content is null)
             throw new PluginMisconfigurationException("Content file is required.");
 
-        var extension = Path.GetExtension(input.Content.Name ?? string.Empty).ToLowerInvariant();
-        if (extension is not (".html" or ".htm"))
-            throw new PluginMisconfigurationException("Upload universal content accepts HTML files only.");
-
         using var stream = await fileManagementClient.DownloadAsync(input.Content);
-        using var reader = new StreamReader(stream, Encoding.UTF8);
-        var fileText = await reader.ReadToEndAsync();
-        if (string.IsNullOrWhiteSpace(fileText))
-            throw new PluginMisconfigurationException("Content file is empty.");
-
-        var filteredHtml = TemplateHtmlFilterService.Create(
-            fileText, input.Content.Name ?? "universal-content.html");
-        var htmlFile = TranslationHtmlFileCodec.Import(filteredHtml);
+        var htmlFile = await TranslationContentReader.ReadAsync(stream, input.Content.Name);
         var universalContentId = ResolveUniversalContentId(input.UniversalContentId, htmlFile.Metadata);
 
         await GetUniversalContentAsync(universalContentId);
@@ -169,21 +158,12 @@ public class UniversalContentFileService(KlaviyoClient client, IFileManagementCl
         IReadOnlyCollection<TranslationValueDto> currentValues,
         string universalContentId)
     {
-        var currentById = currentValues.ToDictionary(value => value.Id, StringComparer.Ordinal);
-        var unknownIds = uploadedValues.Keys.Where(id => !currentById.ContainsKey(id)).ToArray();
+        var currentIds = currentValues.Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
+        var unknownIds = uploadedValues.Keys.Where(id => !currentIds.Contains(id)).ToArray();
         if (unknownIds.Length > 0)
             throw new PluginMisconfigurationException(
                 $"The HTML file contains value IDs that do not belong to universal content '{universalContentId}': " +
                 string.Join(", ", unknownIds));
-
-        foreach (var (id, translatedValue) in uploadedValues)
-        {
-            var sourceFragment = TranslationHtmlFileCodec.ToFragment(currentById[id].SourceValue);
-            var sourceDocument = $"<html><head></head><body>{sourceFragment}</body></html>";
-            var filteredSource = TemplateHtmlFilterService.Create(sourceDocument, "universal-content-value.html");
-            filteredSource = TranslationHtmlFileCodec.ToFragment(filteredSource);
-            TranslationFileCodec.ValidateHtmlTranslation(filteredSource, translatedValue, id);
-        }
     }
 
     public static string NormalizeUniversalContentId(string? universalContentId)
