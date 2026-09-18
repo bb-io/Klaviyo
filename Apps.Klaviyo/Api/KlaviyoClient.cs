@@ -4,6 +4,7 @@ using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Utils.Extensions.Sdk;
 using Blackbird.Applications.Sdk.Utils.RestSharp;
+using HtmlAgilityPack;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
@@ -76,16 +77,22 @@ public class KlaviyoClient : BlackBirdRestClient
 
     protected override Exception ConfigureErrorException(RestResponse response)
     {
-        var fallbackMessage = !string.IsNullOrWhiteSpace(response.Content)
-            ? response.Content.Trim()
-            : !string.IsNullOrWhiteSpace(response.ErrorMessage)
-                ? response.ErrorMessage.Trim()
-                : response.StatusCode.ToString();
-        if (fallbackMessage.Length > MaxFallbackErrorLength)
-            fallbackMessage = fallbackMessage[..(MaxFallbackErrorLength - 3)] + "...";
-
         if (string.IsNullOrWhiteSpace(response.Content))
-            return new PluginApplicationException($"Request failed: {fallbackMessage}");
+        {
+            return new PluginApplicationException(!string.IsNullOrWhiteSpace(response.ErrorMessage)
+                ? TruncateErrorMessage(response.ErrorMessage)
+                : $"Unknown error occurred. Status code: {response.StatusCode}, {response.StatusDescription}");
+        }
+
+        if (response.ContentType?.Contains("html", StringComparison.OrdinalIgnoreCase) == true ||
+            response.Content.TrimStart().StartsWith("<", StringComparison.Ordinal))
+        {
+            return new PluginApplicationException(
+                $"Expected JSON but received HTML ({response.StatusCode}). {ExtractHtmlErrorMessage(response.Content)}");
+        }
+
+        var fallbackException = new PluginApplicationException(
+            $"Request failed ({response.StatusCode}): {TruncateErrorMessage(response.Content)}");
 
         try
         {
@@ -102,9 +109,50 @@ public class KlaviyoClient : BlackBirdRestClient
         }
         catch (JsonException)
         {
-            // Preserve non-JSON error responses from proxies and gateways.
+            return fallbackException;
         }
 
-        return new PluginApplicationException($"Request failed: {fallbackMessage}");
+        return fallbackException;
+    }
+
+    private static string ExtractHtmlErrorMessage(string htmlContent)
+    {
+        var document = new HtmlDocument();
+        document.LoadHtml(htmlContent);
+
+        var ignoredNodes = document.DocumentNode.SelectNodes("//script|//style");
+        if (ignoredNodes is not null)
+        {
+            foreach (var node in ignoredNodes)
+                node.Remove();
+        }
+
+        var messageParts = new[]
+        {
+            document.DocumentNode.SelectSingleNode("//title")?.InnerText,
+            document.DocumentNode.SelectSingleNode("//h1")?.InnerText,
+            document.DocumentNode.SelectSingleNode("//p")?.InnerText
+        }
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .Select(part => HtmlEntity.DeEntitize(part!).Trim())
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        var message = messageParts.Length > 0
+            ? string.Join("; ", messageParts)
+            : HtmlEntity.DeEntitize(document.DocumentNode.InnerText);
+
+        return string.IsNullOrWhiteSpace(message)
+            ? "No error details found in HTML response."
+            : TruncateErrorMessage(message);
+    }
+
+    private static string TruncateErrorMessage(string message)
+    {
+        message = message.Trim();
+        return message.Length > MaxFallbackErrorLength
+            ? message[..(MaxFallbackErrorLength - 3)] + "..."
+            : message;
     }
 }
