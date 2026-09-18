@@ -1,4 +1,3 @@
-using System.Text;
 using Apps.Klaviyo.Api;
 using Apps.Klaviyo.Api.Dtos;
 using Apps.Klaviyo.Models.Requests;
@@ -9,6 +8,7 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using System.Text;
 
 namespace Apps.Klaviyo.Services;
 

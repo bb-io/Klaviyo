@@ -1,4 +1,5 @@
 using Apps.Klaviyo.Constants;
+using Apps.Klaviyo.Models.Identifiers;
 using Apps.Klaviyo.Models.Requests;
 using Apps.Klaviyo.Models.Responses;
 using Apps.Klaviyo.Services;

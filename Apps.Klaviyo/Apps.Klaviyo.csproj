@@ -15,7 +15,6 @@
         <PackageReference Include="Blackbird.Applications.SDK.Extensions.FileManagement" Version="1.1.0" />
         <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.1.0-rc.8709" />
         <PackageReference Include="Blackbird.Filters" Version="1.2.12" />
-        <PackageReference Include="HtmlAgilityPack" Version="1.12.3" />
     </ItemGroup>
 
 	<ItemGroup>

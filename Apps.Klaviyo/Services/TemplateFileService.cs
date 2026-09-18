@@ -1,4 +1,3 @@
-using System.Text;
 using Apps.Klaviyo.Api;
 using Apps.Klaviyo.Api.Dtos;
 using Apps.Klaviyo.Models.Requests;
@@ -9,6 +8,7 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using System.Text;
 
 namespace Apps.Klaviyo.Services;
 
@@ -309,7 +309,7 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
     public static string NormalizeTemplateId(string? templateId)
     {
         if (string.IsNullOrWhiteSpace(templateId))
-            throw new PluginMisconfigurationException("Template ID is required.");
+            throw new PluginMisconfigurationException("Template ID is null or empty. Please check the action inputs and provide a non-null, non-empty value.");
         var normalized = templateId.Trim();
         if (normalized.Contains("::", StringComparison.Ordinal))
         {
@@ -328,7 +328,7 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
     private static string ValidateLocale(string? locale)
     {
         if (string.IsNullOrWhiteSpace(locale))
-            throw new PluginMisconfigurationException("Target locale is required.");
+            throw new PluginMisconfigurationException("Target locale is null or empty. Please check the action inputs and provide a non-null, non-empty value.");
         return locale.Trim();
     }
 }

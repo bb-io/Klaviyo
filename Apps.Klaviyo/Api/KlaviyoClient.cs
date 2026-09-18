@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Apps.Klaviyo.Api.Dtos;
 using Apps.Klaviyo.Constants;
 using Blackbird.Applications.Sdk.Common.Authentication;
@@ -8,6 +7,7 @@ using Blackbird.Applications.Sdk.Utils.RestSharp;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using System.Runtime.CompilerServices;
 
 namespace Apps.Klaviyo.Api;
 
