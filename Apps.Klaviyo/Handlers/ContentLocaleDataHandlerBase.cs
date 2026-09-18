@@ -1,5 +1,6 @@
 using Apps.Klaviyo.Api.Dtos;
 using Apps.Klaviyo.Constants;
+using Apps.Klaviyo.Helpers;
 using Apps.Klaviyo.Services;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Exceptions;
@@ -57,7 +58,6 @@ public abstract class ContentLocaleDataHandlerBase(InvocationContext invocationC
             (contentType, FlowMessageFileService.NormalizeFlowMessageId(contentId)),
         TranslationResourceTypes.UniversalContent =>
             (contentType, UniversalContentFileService.NormalizeUniversalContentId(contentId)),
-        _ => throw new PluginMisconfigurationException(
-            "Unsupported content type. Select a value from the available options.")
+        _ => throw ExceptionHelper.UnsupportedContentType()
     };
 }

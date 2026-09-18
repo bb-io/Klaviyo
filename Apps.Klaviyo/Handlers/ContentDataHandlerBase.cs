@@ -1,4 +1,5 @@
 using Apps.Klaviyo.Constants;
+using Apps.Klaviyo.Helpers;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
@@ -27,8 +28,7 @@ public abstract class ContentDataHandlerBase(
                 new FlowMessageDataHandler(InvocationContext).GetDataAsync(context, cancellationToken),
             TranslationResourceTypes.UniversalContent =>
                 new UniversalContentDataHandler(InvocationContext).GetDataAsync(context, cancellationToken),
-            _ => throw new PluginMisconfigurationException(
-                "Unsupported content type. Select a value from the available options.")
+            _ => throw ExceptionHelper.UnsupportedContentType()
         };
     }
 }

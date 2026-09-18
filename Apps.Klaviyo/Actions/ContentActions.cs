@@ -1,10 +1,10 @@
 using Apps.Klaviyo.Constants;
+using Apps.Klaviyo.Helpers;
 using Apps.Klaviyo.Models.Requests;
 using Apps.Klaviyo.Models.Responses;
 using Apps.Klaviyo.Services;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
-using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Blueprints;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
@@ -29,7 +29,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             TranslationResourceTypes.CampaignVariation => await DownloadCampaignVariation(input),
             TranslationResourceTypes.FlowMessage => await DownloadFlowMessage(input),
             TranslationResourceTypes.UniversalContent => await DownloadUniversalContent(input),
-            _ => throw UnsupportedContentType()
+            _ => throw ExceptionHelper.UnsupportedContentType()
         };
 
         return result;
@@ -72,7 +72,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
                     SourceLocale = input.SourceLocale,
                     Content = input.Content
                 }),
-            _ => throw UnsupportedContentType()
+            _ => throw ExceptionHelper.UnsupportedContentType()
         };
 
     private async Task<DownloadContentResponse> DownloadTemplate(DownloadContentRequest input)
@@ -110,7 +110,4 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             });
         return new DownloadContentResponse { Content = result.Content, JsonFile = result.JsonFile };
     }
-
-    private static PluginMisconfigurationException UnsupportedContentType() =>
-        new("Unsupported content type. Select a value from the available options.");
 }
