@@ -16,9 +16,9 @@ public class CampaignVariationResponse
     [Display("Definition")]
     public string? Definition { get; set; }
 
-    [Display("Created")]
+    [Display("Created at")]
     public DateTime? Created { get; set; }
 
-    [Display("Updated")]
+    [Display("Updated at")]
     public DateTime? Updated { get; set; }
 }

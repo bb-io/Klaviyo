@@ -11,7 +11,7 @@ public class DownloadContentRequest : ContentTypeFilter, IDownloadContentInput
     [DataSource(typeof(DownloadContentDataHandler))]
     public string ContentId { get; set; } = string.Empty;
 
-    [Display("Locale", Description = "Optional locale to download. Omit it to download the source content.")]
+    [Display("Locale", Description = "Locale to download. Omit it to download the source content.")]
     [DataSource(typeof(ContentLocaleDataHandler))]
     public string? Locale { get; set; }
 }

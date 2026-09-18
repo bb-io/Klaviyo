@@ -10,7 +10,7 @@ public class DownloadUniversalContentRequest
     [DataSource(typeof(UniversalContentDataHandler))]
     public string UniversalContentId { get; set; } = string.Empty;
 
-    [Display("Locale", Description = "Optional locale to download. Omit it to download the source content.")]
+    [Display("Locale", Description = "Locale to download. Omit it to download the source content.")]
     [DataSource(typeof(UniversalContentLocaleDataHandler))]
     public string? Locale { get; set; }
 }

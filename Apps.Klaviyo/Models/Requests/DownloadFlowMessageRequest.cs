@@ -10,7 +10,7 @@ public class DownloadFlowMessageRequest
     [DataSource(typeof(FlowMessageDataHandler))]
     public string FlowMessageId { get; set; } = string.Empty;
 
-    [Display("Locale", Description = "Optional locale to download. Omit it to download the source content.")]
+    [Display("Locale", Description = "Locale to download. Omit it to download the source content.")]
     [DataSource(typeof(FlowMessageLocaleDataHandler))]
     public string? Locale { get; set; }
 }

@@ -10,7 +10,7 @@ public class DownloadCampaignVariationRequest
     [DataSource(typeof(CampaignVariationDataHandler))]
     public string CampaignVariationId { get; set; } = string.Empty;
 
-    [Display("Locale", Description = "Optional locale to download. Omit it to download the source content.")]
+    [Display("Locale", Description = "Locale to download. Omit it to download the source content.")]
     [DataSource(typeof(CampaignVariationLocaleDataHandler))]
     public string? Locale { get; set; }
 }

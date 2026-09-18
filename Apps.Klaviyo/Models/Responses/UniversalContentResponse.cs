@@ -25,9 +25,9 @@ public class UniversalContentResponse
     [Display("Screenshot URL")]
     public string? ScreenshotUrl { get; set; }
 
-    [Display("Created")]
+    [Display("Created at")]
     public DateTime? Created { get; set; }
 
-    [Display("Updated")]
+    [Display("Updated at")]
     public DateTime? Updated { get; set; }
 }

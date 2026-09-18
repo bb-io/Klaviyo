@@ -10,7 +10,7 @@ public class DownloadTemplateRequest
     [DataSource(typeof(TemplateDataHandler))]
     public string TemplateId { get; set; } = string.Empty;
 
-    [Display("Locale", Description = "Optional locale to download. Omit it to download the source template.")]
+    [Display("Locale", Description = "Locale to download. Omit it to download the source template.")]
     [DataSource(typeof(TemplateLocaleDataHandler))]
     public string? Locale { get; set; }
 }
