@@ -28,7 +28,7 @@ public class TemplateActions(InvocationContext invocationContext, IFileManagemen
     public Task<DownloadTemplateResponse> DownloadTemplate([ActionParameter] DownloadTemplateRequest input) =>
         new TemplateFileService(Client, fileManagementClient).DownloadAsync(input);
 
-    [Action("Upload template", Description = "Uploads translated HTML to the specified existing or new template locale.")]
+    [Action("Upload template", Description = "Uploads translated file to the specified existing or new template locale.")]
     public Task UploadTemplate([ActionParameter] UploadTemplateRequest input) =>
         new TemplateFileService(Client, fileManagementClient).UploadAsync(input);
 }

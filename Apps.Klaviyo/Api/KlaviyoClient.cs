@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using Apps.Klaviyo.Api.Dtos;
 using Apps.Klaviyo.Constants;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Exceptions;
@@ -20,7 +22,8 @@ public class KlaviyoClient : BlackBirdRestClient
     {
         var apiKey = creds.Get(CredsNames.ApiKey).Value;
         if (string.IsNullOrWhiteSpace(apiKey))
-            throw new ArgumentException("Klaviyo private API key cannot be empty.");
+            throw new PluginMisconfigurationException(
+                "Private API key cannot be empty. Add the key to the connection.");
 
         this.AddDefaultHeader("Authorization", $"Klaviyo-API-Key {apiKey.Trim()}");
         this.AddDefaultHeader("Accept", "application/vnd.api+json");
@@ -29,14 +32,14 @@ public class KlaviyoClient : BlackBirdRestClient
 
     public override async Task<T> ExecuteWithErrorHandling<T>(RestRequest request)
     {
-        string content = (await ExecuteWithErrorHandling(request)).Content;
-        T val = JsonConvert.DeserializeObject<T>(content, JsonSettings);
-        if (val == null)
-        {
-            throw new Exception($"Could not parse {content} to {typeof(T)}");
-        }
+        var content = (await ExecuteWithErrorHandling(request)).Content;
+        if (string.IsNullOrWhiteSpace(content))
+            throw new PluginApplicationException(
+                $"Returned an empty response for {typeof(T).Name}.");
 
-        return val;
+        return JsonConvert.DeserializeObject<T>(content, JsonSettings)
+               ?? throw new PluginApplicationException(
+                   $"Returned an invalid response for {typeof(T).Name}.");
     }
 
     public override async Task<RestResponse> ExecuteWithErrorHandling(RestRequest request)
@@ -50,6 +53,26 @@ public class KlaviyoClient : BlackBirdRestClient
         return restResponse;
     }
 
+    public async IAsyncEnumerable<JsonApiListResponse<T>> PaginateAsync<T>(
+        RestRequest request,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var visitedPages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var response = await ExecuteWithErrorHandling<JsonApiListResponse<T>>(request);
+            yield return response;
+
+            var next = response.Links?.Next;
+            if (string.IsNullOrWhiteSpace(next) || !visitedPages.Add(next))
+                yield break;
+
+            request = new RestRequest(next, Method.Get);
+        }
+    }
+
     protected override Exception ConfigureErrorException(RestResponse response)
     {
         var fallbackMessage = response.ErrorMessage
@@ -57,7 +80,7 @@ public class KlaviyoClient : BlackBirdRestClient
                               ?? response.StatusCode.ToString();
 
         if (string.IsNullOrWhiteSpace(response.Content))
-            return new PluginApplicationException($"Klaviyo API request failed: {fallbackMessage}");
+            return new PluginApplicationException($"Request failed: {fallbackMessage}");
 
         try
         {
@@ -70,13 +93,13 @@ public class KlaviyoClient : BlackBirdRestClient
 
             if (messages?.Length > 0)
                 return new PluginApplicationException(
-                    $"Klaviyo API request failed: {string.Join("; ", messages)}");
+                    $"Request failed: {string.Join("; ", messages)}");
         }
         catch (JsonException)
         {
             // Preserve non-JSON error responses from proxies and gateways.
         }
 
-        return new PluginApplicationException($"Klaviyo API request failed: {fallbackMessage}");
+        return new PluginApplicationException($"Request failed: {fallbackMessage}");
     }
 }

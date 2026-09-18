@@ -20,7 +20,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         new TranslationService(Client).SearchAsync(input, input.ContentTypes);
 
     [BlueprintActionDefinition(BlueprintAction.DownloadContent)]
-    [Action("Download content", Description = "Downloads selected Klaviyo content as HTML and JSON.")]
+    [Action("Download content", Description = "Downloads selected content as HTML and JSON.")]
     public async Task<DownloadContentResponse> DownloadContent([ActionParameter] DownloadContentRequest input)
     {
         var result = input.ContentType?.Trim().ToLowerInvariant() switch
@@ -36,7 +36,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     }
 
     [BlueprintActionDefinition(BlueprintAction.UploadContent)]
-    [Action("Upload content", Description = "Uploads translated HTML to the selected Klaviyo content type.")]
+    [Action("Upload content", Description = "Uploads translated file to the selected content type.")]
     public Task UploadContent([ActionParameter] UploadContentRequest input) =>
         input.ContentType?.Trim().ToLowerInvariant() switch
         {

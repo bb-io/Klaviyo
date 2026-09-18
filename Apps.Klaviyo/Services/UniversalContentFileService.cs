@@ -267,7 +267,8 @@ public class UniversalContentFileService(KlaviyoClient client, IFileManagementCl
         var request = new RestRequest("translations", Method.Post)
             .AddStringBody(JsonConvert.SerializeObject(body), "application/vnd.api+json");
         var response = await client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
-        return response.Data;
+        return response.Data ?? throw new PluginApplicationException(
+            $"Klaviyo did not return the created translation for '{universalContentId}'.");
     }
 
     private async Task<FileReference> SaveAsync(string content, string mediaType, string fileName) =>

@@ -15,12 +15,9 @@ public class UniversalContentDataHandler(InvocationContext invocationContext)
             .AddQueryParameter("page[size]", "100");
         var search = context.SearchString?.Trim() ?? string.Empty;
         var results = new List<DataSourceItem>();
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        while (true)
+        await foreach (var response in Client.PaginateAsync<RelatedResourceDto>(request, cancellationToken))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<RelatedResourceDto>>(request);
             results.AddRange(response.Data
                 .Where(item => string.Equals(item.Type, "template-universal-content", StringComparison.OrdinalIgnoreCase))
                 .Select(item => new
@@ -33,13 +30,9 @@ public class UniversalContentDataHandler(InvocationContext invocationContext)
                                (item.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
                 .Select(item => new DataSourceItem(item.Id,
                     string.IsNullOrWhiteSpace(item.Name) ? item.Id : $"{item.Name} ({item.Id})")));
-
-            var next = response.Links?.Next;
-            if (string.IsNullOrWhiteSpace(next) || !visited.Add(next))
-                break;
-            request = new RestRequest(next, Method.Get);
         }
 
         return results.OrderBy(item => item.DisplayName).ToArray();
     }
+
 }

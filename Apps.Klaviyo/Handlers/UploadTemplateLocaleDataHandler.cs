@@ -1,20 +1,19 @@
-using Apps.Klaviyo.Api.Dtos;
 using Apps.Klaviyo.Models.Requests;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
-using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using RestSharp;
 
 namespace Apps.Klaviyo.Handlers;
 
-public class TemplateLocaleDataHandler(
+public class UploadTemplateLocaleDataHandler(
     InvocationContext invocationContext,
-    [ActionParameter] DownloadTemplateRequest input)
+    [ActionParameter] UploadTemplateRequest input)
     : TemplateLocaleDataHandlerBase(invocationContext), IAsyncDataSourceItemHandler
 {
     public Task<IEnumerable<DataSourceItem>> GetDataAsync(
         DataSourceContext context,
         CancellationToken cancellationToken) =>
-        GetLocalesAsync(input.TemplateId, context, cancellationToken);
+        string.IsNullOrWhiteSpace(input.TemplateId)
+            ? Task.FromResult<IEnumerable<DataSourceItem>>([])
+            : GetLocalesAsync(input.TemplateId, context, cancellationToken);
 }

@@ -21,7 +21,7 @@ public class FlowMessageActions(InvocationContext invocationContext, IFileManage
     public Task<DownloadFlowMessageResponse> DownloadFlowMessage([ActionParameter] DownloadFlowMessageRequest input) =>
         new FlowMessageFileService(Client, fileManagementClient).DownloadAsync(input);
 
-    [Action("Upload flow message", Description = "Uploads translated HTML to the specified existing or new flow message locale.")]
+    [Action("Upload flow message", Description = "Uploads translated file to the specified existing or new flow message locale.")]
     public Task UploadFlowMessage([ActionParameter] UploadFlowMessageRequest input) =>
         new FlowMessageFileService(Client, fileManagementClient).UploadAsync(input);
 }

@@ -4,6 +4,7 @@ using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Connections;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
+using System.Net;
 
 namespace Apps.Klaviyo.Connections;
 
@@ -11,37 +12,39 @@ public class ConnectionValidator(InvocationContext invocationContext)
     : BaseInvocable(invocationContext), IConnectionValidator
 {
     public async ValueTask<ConnectionValidationResponse> ValidateConnection(
-        IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
+        IEnumerable<AuthenticationCredentialsProvider> authProviders,
         CancellationToken cancellationToken)
     {
         try
         {
-            var client = new KlaviyoClient(authenticationCredentialsProviders);
+            var client = new KlaviyoClient(authProviders);
             var request = new RestRequest("translations", Method.Get)
                 .AddQueryParameter("page[size]", "1");
+            var response = await client.ExecuteAsync(request, cancellationToken);
 
-            cancellationToken.ThrowIfCancellationRequested();
-            await client.ExecuteWithErrorHandling(request);
-            cancellationToken.ThrowIfCancellationRequested();
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            {
+                return new()
+                {
+                    IsValid = false,
+                    Message = "Unauthorized. Please check your private API key and its scopes."
+                };
+            }
 
             return new()
             {
-                IsValid = true,
-                Message = "Connection is valid."
+                IsValid = true
             };
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
         }
         catch (Exception ex)
         {
-            InvocationContext.Logger?.LogError($"Connection validation failed: {ex.Message}", []);
+            InvocationContext.Logger?.LogError(
+                $"[KlaviyoConnectionValidator] Exception occurred while validating connection: {ex.Message}", []);
 
             return new()
             {
                 IsValid = false,
-                Message = $"Connection validation failed. {ex.Message}"
+                Message = ex.Message
             };
         }
     }

@@ -286,7 +286,8 @@ public class CampaignVariationFileService(KlaviyoClient client, IFileManagementC
         var request = new RestRequest("translations", Method.Post)
             .AddStringBody(JsonConvert.SerializeObject(body), "application/vnd.api+json");
         var response = await client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
-        return response.Data;
+        return response.Data ?? throw new PluginApplicationException(
+            $"Klaviyo did not return the created translation for '{variationId}'.");
     }
 
     private static void ValidateEmailVariation(RelatedResourceDto variation)

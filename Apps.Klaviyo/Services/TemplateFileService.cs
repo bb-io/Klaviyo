@@ -277,7 +277,8 @@ public class TemplateFileService(KlaviyoClient client, IFileManagementClient fil
             var request = new RestRequest("translations", Method.Post)
                 .AddStringBody(JsonConvert.SerializeObject(createBody), "application/vnd.api+json");
             var response = await client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
-            return response.Data;
+            return response.Data ?? throw new PluginApplicationException(
+                $"Klaviyo did not return the created translation for '{templateId}'.");
         }
 
         if (string.Equals(existing.Attributes.SourceLocale, locale, StringComparison.OrdinalIgnoreCase))

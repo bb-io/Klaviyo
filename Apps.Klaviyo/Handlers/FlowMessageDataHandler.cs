@@ -16,12 +16,9 @@ public class FlowMessageDataHandler(InvocationContext invocationContext)
             .AddQueryParameter("page[size]", "100");
         var search = context.SearchString?.Trim() ?? string.Empty;
         var results = new List<DataSourceItem>();
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        while (true)
+        await foreach (var response in Client.PaginateAsync<TranslationDto>(request, cancellationToken))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<TranslationDto>>(request);
             var includedById = response.Included
                 .Where(item => string.Equals(item.Type, "flow-message", StringComparison.OrdinalIgnoreCase))
                 .GroupBy(item => item.Id, StringComparer.Ordinal)
@@ -40,11 +37,6 @@ public class FlowMessageDataHandler(InvocationContext invocationContext)
                                (item.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
                 .Select(item => new DataSourceItem(item.Id!,
                     string.IsNullOrWhiteSpace(item.Name) ? item.Id! : $"{item.Name} ({item.Id})")));
-
-            var next = response.Links?.Next;
-            if (string.IsNullOrWhiteSpace(next) || !visited.Add(next))
-                break;
-            request = new RestRequest(next, Method.Get);
         }
 
         return results

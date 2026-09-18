@@ -15,12 +15,9 @@ public class TemplateDataHandler(InvocationContext invocationContext)
             .AddQueryParameter("page[size]", "10");
         var search = context.SearchString?.Trim() ?? string.Empty;
         var results = new List<DataSourceItem>();
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        while (true)
+        await foreach (var response in Client.PaginateAsync<RelatedResourceDto>(request, cancellationToken))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<RelatedResourceDto>>(request);
             results.AddRange(response.Data
                 .Where(item => item.Type == "template")
                 .Select(item => new
@@ -32,13 +29,9 @@ public class TemplateDataHandler(InvocationContext invocationContext)
                                item.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                                item.Id.Contains(search, StringComparison.OrdinalIgnoreCase))
                 .Select(item => new DataSourceItem(item.Id, item.Name)));
-
-            var next = response.Links?.Next;
-            if (string.IsNullOrWhiteSpace(next) || !visited.Add(next))
-                break;
-            request = new RestRequest(next, Method.Get);
         }
 
         return results.OrderBy(item => item.DisplayName).ToArray();
     }
+
 }

@@ -34,7 +34,7 @@ public class CampaignVariationActions(InvocationContext invocationContext, IFile
         [ActionParameter] DownloadCampaignVariationRequest input) =>
         new CampaignVariationFileService(Client, fileManagementClient).DownloadAsync(input);
 
-    [Action("Upload campaign variation", Description = "Uploads translated HTML to the specified existing or new campaign variation locale.")]
+    [Action("Upload campaign variation", Description = "Uploads translated file to the specified existing or new campaign variation locale.")]
     public Task UploadCampaignVariation([ActionParameter] UploadCampaignVariationRequest input) =>
         new CampaignVariationFileService(Client, fileManagementClient).UploadAsync(input);
 }

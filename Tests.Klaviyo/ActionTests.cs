@@ -50,11 +50,11 @@ public class ActionTests : TestBase
         Assert.AreEqual("text/html", result.Content.ContentType);
         Assert.AreEqual("application/json", result.JsonFile.ContentType);
         Assert.AreEqual($"{templateId}.source.html", result.Content.Name);
-        var html = FileManager.ReadOutputText(result.Content);
+        var html = await FileManager.ReadOutputTextAsync(result.Content);
         StringAssert.Contains(html, $"blackbird-TemplateId");
         StringAssert.Contains(html, $"content=\"{templateId}\"");
         StringAssert.Contains(html, TranslationHtmlFileCodec.TranslationKeyAttribute);
-        StringAssert.Contains(FileManager.ReadOutputText(result.JsonFile), templateId);
+        StringAssert.Contains(await FileManager.ReadOutputTextAsync(result.JsonFile), templateId);
         Console.WriteLine($"Downloaded source HTML: {result.Content.Name}");
         Console.WriteLine($"Downloaded template JSON: {result.JsonFile.Name}");
     }
@@ -74,11 +74,11 @@ public class ActionTests : TestBase
         Assert.AreEqual("text/html", result.Content.ContentType);
         Assert.AreEqual("application/json", result.JsonFile.ContentType);
         Assert.AreEqual($"{templateId}.{locale}.html", result.Content.Name);
-        var html = FileManager.ReadOutputText(result.Content);
+        var html = await FileManager.ReadOutputTextAsync(result.Content);
         StringAssert.Contains(html, $"blackbird-TemplateId");
         StringAssert.Contains(html, $"content=\"{templateId}\"");
         StringAssert.Contains(html, TranslationHtmlFileCodec.TranslationKeyAttribute);
-        StringAssert.Contains(FileManager.ReadOutputText(result.JsonFile), templateId);
+        StringAssert.Contains(await FileManager.ReadOutputTextAsync(result.JsonFile), templateId);
         Console.WriteLine($"Downloaded localized HTML: {result.Content.Name}");
         Console.WriteLine($"Downloaded template JSON: {result.JsonFile.Name}");
     }
@@ -121,11 +121,11 @@ public class ActionTests : TestBase
         Assert.AreEqual("text/html", result.Content.ContentType);
         Assert.AreEqual("application/json", result.JsonFile.ContentType);
         Assert.AreEqual($"{variationId}.source.html", result.Content.Name);
-        var html = FileManager.ReadOutputText(result.Content);
+        var html = await FileManager.ReadOutputTextAsync(result.Content);
         StringAssert.Contains(html, "blackbird-CampaignVariationId");
         StringAssert.Contains(html, $"content=\"{variationId}\"");
         StringAssert.Contains(html, TranslationHtmlFileCodec.TranslationKeyAttribute);
-        StringAssert.Contains(FileManager.ReadOutputText(result.JsonFile), variationId);
+        StringAssert.Contains(await FileManager.ReadOutputTextAsync(result.JsonFile), variationId);
     }
 
     [TestMethod]
@@ -141,7 +141,7 @@ public class ActionTests : TestBase
         });
 
         Assert.AreEqual($"{variationId}.{locale}.html", result.Content.Name);
-        var html = FileManager.ReadOutputText(result.Content);
+        var html = await FileManager.ReadOutputTextAsync(result.Content);
         StringAssert.Contains(html, "blackbird-CampaignVariationId");
         StringAssert.Contains(html, TranslationHtmlFileCodec.TranslationKeyAttribute);
     }

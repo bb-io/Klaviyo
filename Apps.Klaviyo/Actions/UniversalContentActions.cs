@@ -34,7 +34,7 @@ public class UniversalContentActions(InvocationContext invocationContext, IFileM
         [ActionParameter] DownloadUniversalContentRequest input) =>
         new UniversalContentFileService(Client, fileManagementClient).DownloadAsync(input);
 
-    [Action("Upload universal content", Description = "Uploads translated HTML to the specified existing or new universal content locale.")]
+    [Action("Upload universal content", Description = "Uploads translated file to the specified existing or new universal content locale.")]
     public Task UploadUniversalContent([ActionParameter] UploadUniversalContentRequest input) =>
         new UniversalContentFileService(Client, fileManagementClient).UploadAsync(input);
 }
