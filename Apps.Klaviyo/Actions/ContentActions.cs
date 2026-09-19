@@ -19,7 +19,12 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     public Task<SearchTranslationsResponse> SearchContent([ActionParameter] SearchContentRequest input)
     {
         DateRangeValidator.Validate(input.UpdatedFrom, input.UpdatedTo);
-        return new TranslationService(Client).SearchAsync(input, input.ContentTypes);
+        return new TranslationService(Client).SearchAsync(new SearchTranslationsRequest
+        {
+            Channels = input.Channels,
+            UpdatedFrom = input.UpdatedFrom,
+            UpdatedTo = input.UpdatedTo
+        }, input.ContentTypes);
     }
 
     [BlueprintActionDefinition(BlueprintAction.DownloadContent)]

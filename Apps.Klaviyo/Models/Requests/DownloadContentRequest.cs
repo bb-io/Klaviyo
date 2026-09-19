@@ -1,12 +1,18 @@
 using Apps.Klaviyo.Handlers;
+using Apps.Klaviyo.Handlers.Static;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
+using Blackbird.Applications.Sdk.Common.Dictionaries;
 using Blackbird.Applications.SDK.Blueprints.Interfaces.CMS;
 
 namespace Apps.Klaviyo.Models.Requests;
 
-public class DownloadContentRequest : ContentTypeFilter, IDownloadContentInput
+public class DownloadContentRequest : IDownloadContentInput
 {
+    [Display("Content type")]
+    [StaticDataSource(typeof(ContentTypeDataSourceHandler))]
+    public string ContentType { get; set; } = string.Empty;
+
     [Display("Content ID", Description = "ID of the selected content item.")]
     [DataSource(typeof(DownloadContentDataHandler))]
     public string ContentId { get; set; } = string.Empty;
