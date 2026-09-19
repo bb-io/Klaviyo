@@ -15,8 +15,6 @@ public class TranslationService(KlaviyoClient client)
         SearchTranslationsRequest input,
         IEnumerable<string>? resourceTypes = null)
     {
-        ValidateDateRange(input);
-
         var selectedChannels = NormalizeAndValidate(
             input.Channels,
             TranslationChannels.All,
@@ -228,12 +226,6 @@ public class TranslationService(KlaviyoClient client)
                 $"Unsupported {valueName} value(s): {string.Join(", ", unsupported)}.");
 
         return normalized;
-    }
-
-    private static void ValidateDateRange(SearchTranslationsRequest input)
-    {
-        if (input.UpdatedFrom.HasValue && input.UpdatedTo.HasValue && input.UpdatedFrom > input.UpdatedTo)
-            throw new PluginMisconfigurationException("'Updated from' cannot be after 'Updated to'.");
     }
 
     private static string GetResourceTypeFromId(string translationId) =>

@@ -1,4 +1,5 @@
 using Apps.Klaviyo.Constants;
+using Apps.Klaviyo.Helpers;
 using Apps.Klaviyo.Models.Identifiers;
 using Apps.Klaviyo.Models.Requests;
 using Apps.Klaviyo.Models.Responses;
@@ -15,8 +16,11 @@ public class TemplateActions(InvocationContext invocationContext, IFileManagemen
 {
     [Action("Search templates", Description = "Searches translations associated with templates.")]
     public Task<SearchTranslationsResponse> SearchTemplates(
-        [ActionParameter] SearchTranslationsRequest input) =>
-        new TranslationService(Client).SearchAsync(input, [TranslationResourceTypes.Template]);
+        [ActionParameter] SearchTranslationsRequest input)
+    {
+        DateRangeValidator.Validate(input.UpdatedFrom, input.UpdatedTo);
+        return new TranslationService(Client).SearchAsync(input, [TranslationResourceTypes.Template]);
+    }
 
     [Action("Get template", Description = "Gets a template associated with a translation.")]
     public Task<TemplateResponse> GetTemplate([ActionParameter] TemplateIdentifier input)

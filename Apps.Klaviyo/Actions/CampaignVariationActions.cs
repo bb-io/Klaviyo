@@ -1,4 +1,5 @@
 using Apps.Klaviyo.Constants;
+using Apps.Klaviyo.Helpers;
 using Apps.Klaviyo.Models.Identifiers;
 using Apps.Klaviyo.Models.Requests;
 using Apps.Klaviyo.Models.Responses;
@@ -16,8 +17,11 @@ public class CampaignVariationActions(InvocationContext invocationContext, IFile
     [Action("Search campaign variations",
         Description = "Searches translations associated with campaign variations.")]
     public Task<SearchTranslationsResponse> SearchCampaignVariations(
-        [ActionParameter] SearchTranslationsRequest input) =>
-        new TranslationService(Client).SearchAsync(input, [TranslationResourceTypes.CampaignVariation]);
+        [ActionParameter] SearchTranslationsRequest input)
+    {
+        DateRangeValidator.Validate(input.UpdatedFrom, input.UpdatedTo);
+        return new TranslationService(Client).SearchAsync(input, [TranslationResourceTypes.CampaignVariation]);
+    }
 
     [Action("Get campaign variation",
         Description = "Gets campaign variation associated with a translation.")]

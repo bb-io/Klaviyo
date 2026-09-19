@@ -1,4 +1,5 @@
 using Apps.Klaviyo.Constants;
+using Apps.Klaviyo.Helpers;
 using Apps.Klaviyo.Models.Identifiers;
 using Apps.Klaviyo.Models.Requests;
 using Apps.Klaviyo.Models.Responses;
@@ -16,8 +17,11 @@ public class UniversalContentActions(InvocationContext invocationContext, IFileM
     [Action("Search universal content",
         Description = "Searches translations associated with universal content.")]
     public Task<SearchTranslationsResponse> SearchUniversalContent(
-        [ActionParameter] SearchTranslationsRequest input) =>
-        new TranslationService(Client).SearchAsync(input, [TranslationResourceTypes.UniversalContent]);
+        [ActionParameter] SearchTranslationsRequest input)
+    {
+        DateRangeValidator.Validate(input.UpdatedFrom, input.UpdatedTo);
+        return new TranslationService(Client).SearchAsync(input, [TranslationResourceTypes.UniversalContent]);
+    }
 
     [Action("Get universal content",
         Description = "Gets universal content associated with a translation.")]

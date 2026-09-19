@@ -1,3 +1,4 @@
+using Apps.Klaviyo.Helpers;
 using Apps.Klaviyo.Models.Polling;
 using Apps.Klaviyo.Models.Requests;
 using Apps.Klaviyo.Models.Responses;
@@ -23,6 +24,7 @@ public class ContentPollingList(InvocationContext invocationContext) : Invocable
             return Baseline<ContentUpdatedMultipleResponse>(pollingStartedAt);
 
         var lastPollingTime = request.Memory.LastPollingTime.Value;
+        DateRangeValidator.Validate(lastPollingTime, pollingStartedAt);
         var searchResult = await new TranslationService(Client).SearchAsync(
             new SearchTranslationsRequest
             {

@@ -16,8 +16,11 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
 {
     [BlueprintActionDefinition(BlueprintAction.SearchContent)]
     [Action("Search content", Description = "Searches all content with translations.")]
-    public Task<SearchTranslationsResponse> SearchContent([ActionParameter] SearchContentRequest input) =>
-        new TranslationService(Client).SearchAsync(input, input.ContentTypes);
+    public Task<SearchTranslationsResponse> SearchContent([ActionParameter] SearchContentRequest input)
+    {
+        DateRangeValidator.Validate(input.UpdatedFrom, input.UpdatedTo);
+        return new TranslationService(Client).SearchAsync(input, input.ContentTypes);
+    }
 
     [BlueprintActionDefinition(BlueprintAction.DownloadContent)]
     [Action("Download content", Description = "Downloads selected content as HTML and JSON.")]
