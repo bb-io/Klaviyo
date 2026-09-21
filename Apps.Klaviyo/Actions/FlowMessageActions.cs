@@ -8,12 +8,10 @@ using Apps.Klaviyo.Services;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
-using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json.Linq;
 using RestSharp;
-using System.Text;
 
 namespace Apps.Klaviyo.Actions;
 
@@ -59,7 +57,9 @@ public class FlowMessageActions(
         var (flowMessageId, idChannel) = ParseFlowMessageId(input.FlowMessageId);
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
             TranslationResourceDisplayNames.FlowMessage, SupportedChannels, input.Channel, idChannel);
-        var translation = await FindTranslationAsync(flowMessageId, requestedChannel)
+        var translation = await TranslationResourceHelper.FindTranslationAsync(
+                              Client, TranslationResourceTypes.FlowMessage, flowMessageId,
+                              SupportedChannels, requestedChannel)
                           ?? throw new PluginMisconfigurationException(
                               $"Flow message '{flowMessageId}' does not have translations configured" +
                               (requestedChannel is null ? "." : $" for channel '{requestedChannel}'."));
@@ -76,7 +76,9 @@ public class FlowMessageActions(
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
             TranslationResourceDisplayNames.FlowMessage,
             SupportedChannels, input.Channel, idChannel, resourceChannel);
-        var translation = await FindTranslationAsync(flowMessageId, requestedChannel)
+        var translation = await TranslationResourceHelper.FindTranslationAsync(
+                              Client, TranslationResourceTypes.FlowMessage, flowMessageId,
+                              SupportedChannels, requestedChannel)
                           ?? throw new PluginMisconfigurationException(
                               $"Flow message '{flowMessageId}' does not have translations configured yet.");
         var channel = TranslationChannelHelper.ResolveChannel(
@@ -105,13 +107,15 @@ public class FlowMessageActions(
         var fileName = $"{flowMessageId}.{suffix}.html";
         html = TemplateHtmlFilterService.Create(html, fileName);
 
-        var htmlFile = await SaveAsync(html, "text/html", fileName);
+        var htmlFile = await TranslationResourceHelper.SaveAsync(
+            fileManagementClient, html, "text/html", fileName);
         var json = new JObject
         {
             ["data"] = JObject.FromObject(flowMessage),
             ["translation"] = JObject.FromObject(translation)
         };
-        var jsonFile = await SaveAsync(json.ToString(), "application/json",
+        var jsonFile = await TranslationResourceHelper.SaveAsync(fileManagementClient,
+            json.ToString(), "application/json",
             $"{flowMessageId}.{suffix}.json");
 
         return new DownloadFlowMessageResponse
@@ -142,11 +146,15 @@ public class FlowMessageActions(
         var channel = TranslationChannelHelper.ResolveChannel(
             TranslationResourceDisplayNames.FlowMessage,
             SupportedChannels, null, fileChannel, resourceChannel);
-        var existing = await FindTranslationAsync(flowMessageId, channel);
+        var existing = await TranslationResourceHelper.FindTranslationAsync(
+            Client, TranslationResourceTypes.FlowMessage, flowMessageId, SupportedChannels, channel);
         TranslationDto translation;
         if (existing is null)
         {
-            translation = await CreateTranslationAsync(flowMessageId, locale, input.SourceLocale, channel);
+            translation = await TranslationResourceHelper.CreateTranslationAsync(
+                Client, TranslationResourceTypes.FlowMessage,
+                TranslationResourceDisplayNames.FlowMessage,
+                flowMessageId, locale, input.SourceLocale, channel);
         }
         else
         {
@@ -184,19 +192,6 @@ public class FlowMessageActions(
             $"Returned no flow message '{flowMessageId}'.");
     }
 
-    private async Task<TranslationDto?> FindTranslationAsync(string flowMessageId, string? channel = null)
-    {
-        var request = TranslationRequestBuilder.FindByResourceId(flowMessageId);
-        var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<TranslationDto>>(request);
-        return response.Data.FirstOrDefault(item =>
-            item.Id.StartsWith($"{TranslationResourceTypes.FlowMessage}::", StringComparison.OrdinalIgnoreCase) &&
-            SupportedChannels.Contains(GetChannelFromTranslation(item), StringComparer.OrdinalIgnoreCase) &&
-            (channel is null || string.Equals(GetChannelFromTranslation(item), channel,
-                StringComparison.OrdinalIgnoreCase)) &&
-            string.Equals(item.Relationships[TranslationResourceTypes.FlowMessage]?["data"]?["id"]?.ToString(),
-                flowMessageId, StringComparison.Ordinal));
-    }
-
     private async Task<TranslationDto> GetWithValuesAsync(string translationId)
     {
         var request = TranslationRequestBuilder.GetWithValues(translationId);
@@ -205,30 +200,11 @@ public class FlowMessageActions(
             $"Returned no translation '{translationId}'.");
     }
 
-    private async Task<TranslationDto> CreateTranslationAsync(
-        string flowMessageId, string locale, string? sourceLocale, string channel)
-    {
-        sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
-            sourceLocale, locale, TranslationResourceDisplayNames.FlowMessage);
-        var request = TranslationRequestBuilder.Create(
-            TranslationResourceTypes.FlowMessage, flowMessageId, sourceLocale, locale, channel);
-        var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
-        return response.Data ?? throw new PluginApplicationException(
-            $"Klaviyo did not return the created translation for '{flowMessageId}'.");
-    }
-
     private static string GetFlowMessageChannel(RelatedResourceDto flowMessage)
     {
         var channel = flowMessage.Attributes["channel"]?.ToString();
         return TranslationChannelHelper.ResolveChannel(
             TranslationResourceDisplayNames.FlowMessage, SupportedChannels, null, channel);
     }
-
-    private static string? GetChannelFromTranslation(TranslationDto translation) =>
-        translation.Attributes.Channel ?? TranslationChannelHelper.GetChannelFromTranslationId(translation.Id);
-
-    private async Task<FileReference> SaveAsync(string content, string mediaType, string fileName) =>
-        await fileManagementClient.UploadAsync(
-            new MemoryStream(Encoding.UTF8.GetBytes(content)), mediaType, fileName);
 
 }

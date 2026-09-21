@@ -8,12 +8,10 @@ using Apps.Klaviyo.Services;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
-using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json.Linq;
 using RestSharp;
-using System.Text;
 
 namespace Apps.Klaviyo.Actions;
 
@@ -60,7 +58,9 @@ public class TemplateActions(
         var (templateId, idChannel) = ParseTemplateId(input.TemplateId);
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
             TranslationResourceDisplayNames.Template, SupportedChannels, input.Channel, idChannel);
-        var translation = await FindTranslationAsync(templateId, requestedChannel)
+        var translation = await TranslationResourceHelper.FindTranslationAsync(
+                              Client, TranslationResourceTypes.Template, templateId,
+                              SupportedChannels, requestedChannel)
                           ?? throw new PluginMisconfigurationException(
                               $"Template '{templateId}' does not have translations configured" +
                               (requestedChannel is null ? "." : $" for channel '{requestedChannel}'."));
@@ -75,7 +75,8 @@ public class TemplateActions(
         var locale = input.Locale?.Trim();
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
             TranslationResourceDisplayNames.Template, SupportedChannels, input.Channel, idChannel);
-        var translation = await FindTranslationAsync(templateId, requestedChannel);
+        var translation = await TranslationResourceHelper.FindTranslationAsync(
+            Client, TranslationResourceTypes.Template, templateId, SupportedChannels, requestedChannel);
         var channel = TranslationChannelHelper.ResolveChannel(
             TranslationResourceDisplayNames.Template, SupportedChannels, TranslationChannels.Email,
             requestedChannel, translation?.Attributes.Channel,
@@ -144,14 +145,16 @@ public class TemplateActions(
             metadata[TranslationMetadataKeys.TranslationId] = translation.Id;
         var html = TranslationHtmlFileCodec.Export(metadata, exportedValues);
         html = TemplateHtmlFilterService.Create(html, $"{templateId}.{suffix}.html");
-        var htmlFile = await SaveAsync(html, "text/html", $"{templateId}.{suffix}.html");
+        var htmlFile = await TranslationResourceHelper.SaveAsync(
+            fileManagementClient, html, "text/html", $"{templateId}.{suffix}.html");
         var json = new JObject
         {
             ["data"] = JObject.FromObject(template)
         };
         if (translation is not null)
             json["translation"] = JObject.FromObject(translation);
-        var jsonFile = await SaveAsync(json.ToString(), "application/json", $"{templateId}.{suffix}.json");
+        var jsonFile = await TranslationResourceHelper.SaveAsync(
+            fileManagementClient, json.ToString(), "application/json", $"{templateId}.{suffix}.json");
 
         return new DownloadTemplateResponse
         {
@@ -179,7 +182,8 @@ public class TemplateActions(
         var channel = TranslationChannelHelper.ResolveChannel(
             TranslationResourceDisplayNames.Template,
             SupportedChannels, TranslationChannels.Email, fileChannel);
-        var existing = await FindTranslationAsync(templateId, channel);
+        var existing = await TranslationResourceHelper.FindTranslationAsync(
+            Client, TranslationResourceTypes.Template, templateId, SupportedChannels, channel);
         locale = existing?.Attributes.TargetLocales.FirstOrDefault(value =>
                      string.Equals(value, locale, StringComparison.OrdinalIgnoreCase)) ?? locale;
         var translation = await EnsureTranslationAsync(
@@ -202,19 +206,6 @@ public class TemplateActions(
         return response.Data ?? throw new PluginApplicationException($"Klaviyo returned no template '{templateId}'.");
     }
 
-    private async Task<TranslationDto?> FindTranslationAsync(string templateId, string? channel = null)
-    {
-        var request = TranslationRequestBuilder.FindByResourceId(templateId);
-        var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<TranslationDto>>(request);
-        return response.Data.FirstOrDefault(item =>
-            item.Id.StartsWith($"{TranslationResourceTypes.Template}::", StringComparison.OrdinalIgnoreCase) &&
-            SupportedChannels.Contains(GetChannelFromTranslation(item), StringComparer.OrdinalIgnoreCase) &&
-            (channel is null || string.Equals(GetChannelFromTranslation(item), channel,
-                StringComparison.OrdinalIgnoreCase)) &&
-            string.Equals(item.Relationships["template"]?["data"]?["id"]?.ToString(),
-                templateId, StringComparison.Ordinal));
-    }
-
     private async Task<TranslationDto> GetWithValuesAsync(string translationId)
     {
         var request = TranslationRequestBuilder.GetWithValues(translationId);
@@ -226,15 +217,9 @@ public class TemplateActions(
         string templateId, string locale, string? sourceLocale, string channel, TranslationDto? existing)
     {
         if (existing is null)
-        {
-            sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
-                sourceLocale, locale, TranslationResourceDisplayNames.Template);
-            var request = TranslationRequestBuilder.Create(
-                TranslationResourceTypes.Template, templateId, sourceLocale, locale, channel);
-            var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
-            return response.Data ?? throw new PluginApplicationException(
-                $"Klaviyo did not return the created translation for '{templateId}'.");
-        }
+            return await TranslationResourceHelper.CreateTranslationAsync(
+                Client, TranslationResourceTypes.Template, TranslationResourceDisplayNames.Template,
+                templateId, locale, sourceLocale, channel);
 
         if (string.Equals(existing.Attributes.SourceLocale, locale, StringComparison.OrdinalIgnoreCase))
             throw new PluginMisconfigurationException("Target locale must differ from source locale.");
@@ -248,14 +233,9 @@ public class TemplateActions(
         return existing;
     }
 
-    private async Task<FileReference> SaveAsync(string content, string mediaType, string fileName) =>
-        await fileManagementClient.UploadAsync(new MemoryStream(Encoding.UTF8.GetBytes(content)), mediaType, fileName);
-
     private static (string ResourceId, string? Channel) ParseTemplateId(string? templateId) =>
         TranslationChannelHelper.ParseResourceOrTranslationId(
             templateId, TranslationResourceTypes.Template, SupportedChannels,
             TranslationResourceDisplayNames.Template);
 
-    private static string? GetChannelFromTranslation(TranslationDto translation) =>
-        translation.Attributes.Channel ?? TranslationChannelHelper.GetChannelFromTranslationId(translation.Id);
 }

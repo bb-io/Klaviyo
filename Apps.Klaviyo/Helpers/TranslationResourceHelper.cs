@@ -3,13 +3,71 @@ using Apps.Klaviyo.Api.Dtos;
 using Apps.Klaviyo.Constants;
 using Apps.Klaviyo.Models.Responses;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.Sdk.Common.Files;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using System.Text;
 
 namespace Apps.Klaviyo.Helpers;
 
 public static class TranslationResourceHelper
 {
+    public static async Task<TranslationDto?> FindTranslationAsync(
+        KlaviyoClient client,
+        string resourceType,
+        string resourceId,
+        IReadOnlyCollection<string> supportedChannels,
+        string? channel = null)
+    {
+        var request = TranslationRequestBuilder.FindByResourceId(resourceId);
+        await foreach (var response in client.PaginateAsync<TranslationDto>(request))
+        {
+            var translation = response.Data.FirstOrDefault(item =>
+            {
+                var itemChannel = item.Attributes.Channel
+                                  ?? TranslationChannelHelper.GetChannelFromTranslationId(item.Id);
+                return item.Id.StartsWith($"{resourceType}::", StringComparison.OrdinalIgnoreCase) &&
+                       supportedChannels.Contains(itemChannel, StringComparer.OrdinalIgnoreCase) &&
+                       (channel is null || string.Equals(itemChannel, channel,
+                           StringComparison.OrdinalIgnoreCase)) &&
+                       string.Equals(item.Relationships[resourceType]?["data"]?["id"]?.ToString(),
+                           resourceId, StringComparison.Ordinal);
+            });
+
+            if (translation is not null)
+                return translation;
+        }
+
+        return null;
+    }
+
+    public static async Task<TranslationDto> CreateTranslationAsync(
+        KlaviyoClient client,
+        string resourceType,
+        string resourceDisplayName,
+        string resourceId,
+        string locale,
+        string? sourceLocale,
+        string channel)
+    {
+        sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
+            sourceLocale, locale, resourceDisplayName);
+        var request = TranslationRequestBuilder.Create(
+            resourceType, resourceId, sourceLocale, locale, channel);
+        var response = await client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
+        return response.Data ?? throw new PluginApplicationException(
+            $"Klaviyo did not return the created translation for '{resourceId}'.");
+    }
+
+    public static Task<FileReference> SaveAsync(
+        IFileManagementClient fileManagementClient,
+        string content,
+        string mediaType,
+        string fileName) =>
+        fileManagementClient.UploadAsync(
+            new MemoryStream(Encoding.UTF8.GetBytes(content)), mediaType, fileName);
+
     public static async Task<RelatedResourceDto> GetRelatedResourceAsync(
         KlaviyoClient client,
         string translationId,

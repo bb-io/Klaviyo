@@ -8,12 +8,10 @@ using Apps.Klaviyo.Services;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
-using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json.Linq;
 using RestSharp;
-using System.Text;
 
 namespace Apps.Klaviyo.Actions;
 
@@ -70,7 +68,9 @@ public class UniversalContentActions(
     {
         var universalContentId = NormalizeUniversalContentId(input.UniversalContentId);
         var universalContent = await GetUniversalContentAsync(universalContentId);
-        var translation = await FindTranslationAsync(universalContentId)
+        var translation = await TranslationResourceHelper.FindTranslationAsync(
+                              Client, TranslationResourceTypes.UniversalContent, universalContentId,
+                              TranslationChannels.UniversalContent, Channel)
                           ?? throw new PluginMisconfigurationException(
                               $"Universal content '{universalContentId}' does not have translations configured yet.");
         translation = await GetWithValuesAsync(translation.Id);
@@ -95,13 +95,15 @@ public class UniversalContentActions(
         var fileName = $"{universalContentId}.{suffix}.html";
         html = TemplateHtmlFilterService.Create(html, fileName);
 
-        var htmlFile = await SaveAsync(html, "text/html", fileName);
+        var htmlFile = await TranslationResourceHelper.SaveAsync(
+            fileManagementClient, html, "text/html", fileName);
         var json = new JObject
         {
             ["data"] = JObject.FromObject(universalContent),
             ["translation"] = JObject.FromObject(translation)
         };
-        var jsonFile = await SaveAsync(json.ToString(), "application/json",
+        var jsonFile = await TranslationResourceHelper.SaveAsync(fileManagementClient,
+            json.ToString(), "application/json",
             $"{universalContentId}.{suffix}.json");
 
         return new DownloadUniversalContentResponse
@@ -129,11 +131,16 @@ public class UniversalContentActions(
             TranslationResourceDisplayNames.UniversalContent);
 
         await GetUniversalContentAsync(universalContentId);
-        var existing = await FindTranslationAsync(universalContentId);
+        var existing = await TranslationResourceHelper.FindTranslationAsync(
+            Client, TranslationResourceTypes.UniversalContent, universalContentId,
+            TranslationChannels.UniversalContent, Channel);
         TranslationDto translation;
         if (existing is null)
         {
-            translation = await CreateTranslationAsync(universalContentId, locale, input.SourceLocale);
+            translation = await TranslationResourceHelper.CreateTranslationAsync(
+                Client, TranslationResourceTypes.UniversalContent,
+                TranslationResourceDisplayNames.UniversalContent,
+                universalContentId, locale, input.SourceLocale, Channel);
         }
         else
         {
@@ -185,16 +192,6 @@ public class UniversalContentActions(
             $"Returned no universal content '{universalContentId}'.");
     }
 
-    private async Task<TranslationDto?> FindTranslationAsync(string universalContentId)
-    {
-        var request = TranslationRequestBuilder.FindByResourceId(universalContentId);
-        var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<TranslationDto>>(request);
-        return response.Data.FirstOrDefault(item =>
-            item.Id.StartsWith($"{TranslationResourceTypes.UniversalContent}::{Channel}::", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(item.Relationships[TranslationResourceTypes.UniversalContent]?["data"]?["id"]?.ToString(),
-                universalContentId, StringComparison.Ordinal));
-    }
-
     private async Task<TranslationDto> GetWithValuesAsync(string translationId)
     {
         var request = TranslationRequestBuilder.GetWithValues(translationId);
@@ -202,21 +199,5 @@ public class UniversalContentActions(
         return response.Data ?? throw new PluginApplicationException(
             $"Returned no translation '{translationId}'.");
     }
-
-    private async Task<TranslationDto> CreateTranslationAsync(
-        string universalContentId, string locale, string? sourceLocale)
-    {
-        sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
-            sourceLocale, locale, TranslationResourceDisplayNames.UniversalContent);
-        var request = TranslationRequestBuilder.Create(
-            TranslationResourceTypes.UniversalContent, universalContentId, sourceLocale, locale, Channel);
-        var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
-        return response.Data ?? throw new PluginApplicationException(
-            $"Klaviyo did not return the created translation for '{universalContentId}'.");
-    }
-
-    private async Task<FileReference> SaveAsync(string content, string mediaType, string fileName) =>
-        await fileManagementClient.UploadAsync(
-            new MemoryStream(Encoding.UTF8.GetBytes(content)), mediaType, fileName);
 
 }

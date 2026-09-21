@@ -8,12 +8,10 @@ using Apps.Klaviyo.Services;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
-using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json.Linq;
 using RestSharp;
-using System.Text;
 
 namespace Apps.Klaviyo.Actions;
 
@@ -62,7 +60,9 @@ public class CampaignVariationActions(
         var (variationId, idChannel) = ParseCampaignVariationId(input.CampaignVariationId);
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
             TranslationResourceDisplayNames.CampaignVariation, SupportedChannels, input.Channel, idChannel);
-        var translation = await FindTranslationAsync(variationId, requestedChannel)
+        var translation = await TranslationResourceHelper.FindTranslationAsync(
+                              Client, TranslationResourceTypes.CampaignVariation, variationId,
+                              SupportedChannels, requestedChannel)
                           ?? throw new PluginMisconfigurationException(
                               $"Campaign variation '{variationId}' does not have translations configured" +
                               (requestedChannel is null ? "." : $" for channel '{requestedChannel}'."));
@@ -80,7 +80,9 @@ public class CampaignVariationActions(
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
             TranslationResourceDisplayNames.CampaignVariation,
             SupportedChannels, input.Channel, idChannel, resourceChannel);
-        var translation = await FindTranslationAsync(variationId, requestedChannel)
+        var translation = await TranslationResourceHelper.FindTranslationAsync(
+                              Client, TranslationResourceTypes.CampaignVariation, variationId,
+                              SupportedChannels, requestedChannel)
                           ?? throw new PluginMisconfigurationException(
                               $"Campaign variation '{variationId}' does not have translations configured yet.");
         var channel = TranslationChannelHelper.ResolveChannel(
@@ -109,13 +111,15 @@ public class CampaignVariationActions(
         var fileName = $"{variationId}.{suffix}.html";
         html = TemplateHtmlFilterService.Create(html, fileName);
 
-        var htmlFile = await SaveAsync(html, "text/html", fileName);
+        var htmlFile = await TranslationResourceHelper.SaveAsync(
+            fileManagementClient, html, "text/html", fileName);
         var json = new JObject
         {
             ["data"] = JObject.FromObject(variation),
             ["translation"] = JObject.FromObject(translation)
         };
-        var jsonFile = await SaveAsync(json.ToString(), "application/json",
+        var jsonFile = await TranslationResourceHelper.SaveAsync(fileManagementClient,
+            json.ToString(), "application/json",
             $"{variationId}.{suffix}.json");
 
         return new DownloadCampaignVariationResponse
@@ -147,11 +151,15 @@ public class CampaignVariationActions(
         var channel = TranslationChannelHelper.ResolveChannel(
             TranslationResourceDisplayNames.CampaignVariation,
             SupportedChannels, null, fileChannel, resourceChannel);
-        var existing = await FindTranslationAsync(variationId, channel);
+        var existing = await TranslationResourceHelper.FindTranslationAsync(
+            Client, TranslationResourceTypes.CampaignVariation, variationId, SupportedChannels, channel);
         TranslationDto translation;
         if (existing is null)
         {
-            translation = await CreateTranslationAsync(variationId, locale, input.SourceLocale, channel);
+            translation = await TranslationResourceHelper.CreateTranslationAsync(
+                Client, TranslationResourceTypes.CampaignVariation,
+                TranslationResourceDisplayNames.CampaignVariation,
+                variationId, locale, input.SourceLocale, channel);
         }
         else
         {
@@ -198,37 +206,12 @@ public class CampaignVariationActions(
             $"No campaign variation returned '{variationId}'.");
     }
 
-    private async Task<TranslationDto?> FindTranslationAsync(string variationId, string? channel = null)
-    {
-        var request = TranslationRequestBuilder.FindByResourceId(variationId);
-        var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<TranslationDto>>(request);
-        return response.Data.FirstOrDefault(item =>
-            item.Id.StartsWith($"{TranslationResourceTypes.CampaignVariation}::", StringComparison.OrdinalIgnoreCase) &&
-            SupportedChannels.Contains(GetChannelFromTranslation(item), StringComparer.OrdinalIgnoreCase) &&
-            (channel is null || string.Equals(GetChannelFromTranslation(item), channel,
-                StringComparison.OrdinalIgnoreCase)) &&
-            string.Equals(item.Relationships[TranslationResourceTypes.CampaignVariation]?["data"]?["id"]?.ToString(),
-                variationId, StringComparison.Ordinal));
-    }
-
     private async Task<TranslationDto> GetWithValuesAsync(string translationId)
     {
         var request = TranslationRequestBuilder.GetWithValues(translationId);
         var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
         return response.Data ?? throw new PluginApplicationException(
             $"No translation returned '{translationId}'.");
-    }
-
-    private async Task<TranslationDto> CreateTranslationAsync(
-        string variationId, string locale, string? sourceLocale, string channel)
-    {
-        sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
-            sourceLocale, locale, TranslationResourceDisplayNames.CampaignVariation);
-        var request = TranslationRequestBuilder.Create(
-            TranslationResourceTypes.CampaignVariation, variationId, sourceLocale, locale, channel);
-        var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
-        return response.Data ?? throw new PluginApplicationException(
-            $"No translation created for '{variationId}'.");
     }
 
     private static string GetVariationChannel(RelatedResourceDto variation)
@@ -238,12 +221,5 @@ public class CampaignVariationActions(
         return TranslationChannelHelper.ResolveChannel(
             TranslationResourceDisplayNames.CampaignVariation, SupportedChannels, null, channel);
     }
-
-    private static string? GetChannelFromTranslation(TranslationDto translation) =>
-        translation.Attributes.Channel ?? TranslationChannelHelper.GetChannelFromTranslationId(translation.Id);
-
-    private async Task<FileReference> SaveAsync(string content, string mediaType, string fileName) =>
-        await fileManagementClient.UploadAsync(
-            new MemoryStream(Encoding.UTF8.GetBytes(content)), mediaType, fileName);
 
 }
