@@ -17,12 +17,3 @@ public abstract class SupportedChannelDataSourceHandler(IEnumerable<string> supp
             _ => channel
         }));
 }
-
-public class CampaignVariationChannelDataSourceHandler()
-    : SupportedChannelDataSourceHandler(TranslationChannels.CampaignVariation);
-
-public class FlowMessageChannelDataSourceHandler()
-    : SupportedChannelDataSourceHandler(TranslationChannels.FlowMessage);
-
-public class TemplateChannelDataSourceHandler()
-    : SupportedChannelDataSourceHandler(TranslationChannels.Template);
