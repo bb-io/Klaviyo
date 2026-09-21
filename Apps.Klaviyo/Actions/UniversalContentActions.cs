@@ -79,7 +79,8 @@ public class UniversalContentActions(
                 $"Universal content '{universalContentId}' has no exportable translation values.");
 
         var locale = TranslationValuesHelper.ResolveDownloadLocale(
-            input.Locale, translation.Attributes.TargetLocales, "Universal content", universalContentId);
+            input.Locale, translation.Attributes.TargetLocales,
+            TranslationResourceDisplayNames.UniversalContent, universalContentId);
         var suffix = locale ?? "source";
         var exportedValues = TranslationValuesHelper.SelectExportValues(
             translation.Attributes.Values, locale);
@@ -125,7 +126,7 @@ public class UniversalContentActions(
             htmlFile.Metadata,
             TranslationResourceTypes.UniversalContent,
             TranslationChannels.UniversalContent,
-            "Universal content");
+            TranslationResourceDisplayNames.UniversalContent);
 
         await GetUniversalContentAsync(universalContentId);
         var existing = await FindTranslationAsync(universalContentId);
@@ -145,7 +146,8 @@ public class UniversalContentActions(
 
         var current = await GetWithValuesAsync(translation.Id);
         TranslationValuesHelper.ValidateValueIds(
-            htmlFile.Values, current.Attributes.Values, "Universal content", universalContentId);
+            htmlFile.Values, current.Attributes.Values,
+            TranslationResourceDisplayNames.UniversalContent, universalContentId);
 
         var targetLocales = current.Attributes.TargetLocales.Contains(locale, StringComparer.OrdinalIgnoreCase)
             ? null
@@ -205,7 +207,7 @@ public class UniversalContentActions(
         string universalContentId, string locale, string? sourceLocale)
     {
         sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
-            sourceLocale, locale, "Universal content");
+            sourceLocale, locale, TranslationResourceDisplayNames.UniversalContent);
         var request = TranslationRequestBuilder.Create(
             TranslationResourceTypes.UniversalContent, universalContentId, sourceLocale, locale, Channel);
         var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);

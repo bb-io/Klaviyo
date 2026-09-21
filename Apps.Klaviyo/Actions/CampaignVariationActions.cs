@@ -61,7 +61,7 @@ public class CampaignVariationActions(
     {
         var (variationId, idChannel) = ParseCampaignVariationId(input.CampaignVariationId);
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
-            "Campaign variation", SupportedChannels, input.Channel, idChannel);
+            TranslationResourceDisplayNames.CampaignVariation, SupportedChannels, input.Channel, idChannel);
         var translation = await FindTranslationAsync(variationId, requestedChannel)
                           ?? throw new PluginMisconfigurationException(
                               $"Campaign variation '{variationId}' does not have translations configured" +
@@ -78,12 +78,13 @@ public class CampaignVariationActions(
         var variation = await GetCampaignVariationAsync(variationId);
         var resourceChannel = GetVariationChannel(variation);
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
-            "Campaign variation", SupportedChannels, input.Channel, idChannel, resourceChannel);
+            TranslationResourceDisplayNames.CampaignVariation,
+            SupportedChannels, input.Channel, idChannel, resourceChannel);
         var translation = await FindTranslationAsync(variationId, requestedChannel)
                           ?? throw new PluginMisconfigurationException(
                               $"Campaign variation '{variationId}' does not have translations configured yet.");
         var channel = TranslationChannelHelper.ResolveChannel(
-            "Campaign variation", SupportedChannels, null,
+            TranslationResourceDisplayNames.CampaignVariation, SupportedChannels, null,
             requestedChannel, translation.Attributes.Channel,
             TranslationChannelHelper.GetChannelFromTranslationId(translation.Id));
         translation = await GetWithValuesAsync(translation.Id);
@@ -92,7 +93,8 @@ public class CampaignVariationActions(
                 $"Campaign variation '{variationId}' has no exportable translation values.");
 
         var locale = TranslationValuesHelper.ResolveDownloadLocale(
-            input.Locale, translation.Attributes.TargetLocales, "Campaign variation", variationId);
+            input.Locale, translation.Attributes.TargetLocales,
+            TranslationResourceDisplayNames.CampaignVariation, variationId);
         var suffix = locale ?? "source";
         var exportedValues = TranslationValuesHelper.SelectExportValues(
             translation.Attributes.Values, locale);
@@ -138,12 +140,13 @@ public class CampaignVariationActions(
             htmlFile.Metadata,
             TranslationResourceTypes.CampaignVariation,
             SupportedChannels,
-            "Campaign variation");
+            TranslationResourceDisplayNames.CampaignVariation);
 
         var variation = await GetCampaignVariationAsync(variationId);
         var resourceChannel = GetVariationChannel(variation);
         var channel = TranslationChannelHelper.ResolveChannel(
-            "Campaign variation", SupportedChannels, null, fileChannel, resourceChannel);
+            TranslationResourceDisplayNames.CampaignVariation,
+            SupportedChannels, null, fileChannel, resourceChannel);
         var existing = await FindTranslationAsync(variationId, channel);
         TranslationDto translation;
         if (existing is null)
@@ -161,7 +164,8 @@ public class CampaignVariationActions(
 
         var current = await GetWithValuesAsync(translation.Id);
         TranslationValuesHelper.ValidateValueIds(
-            htmlFile.Values, current.Attributes.Values, "Campaign variation", variationId);
+            htmlFile.Values, current.Attributes.Values,
+            TranslationResourceDisplayNames.CampaignVariation, variationId);
 
         var targetLocales = current.Attributes.TargetLocales.Contains(locale, StringComparer.OrdinalIgnoreCase)
             ? null
@@ -173,28 +177,21 @@ public class CampaignVariationActions(
 
     private static (string ResourceId, string? Channel) ParseCampaignVariationId(string? variationId) =>
         TranslationChannelHelper.ParseResourceOrTranslationId(
-            variationId, TranslationResourceTypes.CampaignVariation, SupportedChannels, "Campaign variation");
+            variationId, TranslationResourceTypes.CampaignVariation, SupportedChannels,
+            TranslationResourceDisplayNames.CampaignVariation);
 
     private async Task<RelatedResourceDto> GetCampaignVariationAsync(string variationId)
     {
         var request = new RestRequest("campaign-messages", Method.Get)
-            .AddQueryParameter("include", "campaign-variations")
-            .AddQueryParameter("page[size]", "100");
-        var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            .AddQueryParameter("include", "campaign-variations");
 
-        while (true)
+        await foreach (var response in Client.PaginateAsync<RelatedResourceDto>(request))
         {
-            var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<RelatedResourceDto>>(request);
             var variation = response.Included.FirstOrDefault(item =>
                 string.Equals(item.Type, TranslationResourceTypes.CampaignVariation, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(item.Id, variationId, StringComparison.Ordinal));
             if (variation is not null)
                 return variation;
-
-            var next = response.Links?.Next;
-            if (string.IsNullOrWhiteSpace(next) || !visited.Add(next))
-                break;
-            request = new RestRequest(next, Method.Get);
         }
 
         throw new PluginApplicationException(
@@ -226,7 +223,7 @@ public class CampaignVariationActions(
         string variationId, string locale, string? sourceLocale, string channel)
     {
         sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
-            sourceLocale, locale, "Campaign variation");
+            sourceLocale, locale, TranslationResourceDisplayNames.CampaignVariation);
         var request = TranslationRequestBuilder.Create(
             TranslationResourceTypes.CampaignVariation, variationId, sourceLocale, locale, channel);
         var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
@@ -239,7 +236,7 @@ public class CampaignVariationActions(
         var channel = variation.Attributes.SelectToken("definition.details.channel")?.ToString()
                       ?? variation.Attributes["channel"]?.ToString();
         return TranslationChannelHelper.ResolveChannel(
-            "Campaign variation", SupportedChannels, null, channel);
+            TranslationResourceDisplayNames.CampaignVariation, SupportedChannels, null, channel);
     }
 
     private static string? GetChannelFromTranslation(TranslationDto translation) =>

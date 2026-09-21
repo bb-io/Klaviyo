@@ -27,10 +27,10 @@ public abstract class ContentLocaleDataHandlerBase(InvocationContext invocationC
         var resourceType = NormalizeResourceType(contentType.Trim().ToLowerInvariant());
         var supportedChannels = TranslationChannels.ForResourceType(resourceType);
         var parsed = TranslationChannelHelper.ParseResourceOrTranslationId(
-            contentId, resourceType, supportedChannels, "Content");
+            contentId, resourceType, supportedChannels, TranslationResourceDisplayNames.Content);
         var resourceId = parsed.ResourceId;
         channel = TranslationChannelHelper.ResolveOptionalChannel(
-            "Content", supportedChannels, channel, parsed.Channel);
+            TranslationResourceDisplayNames.Content, supportedChannels, channel, parsed.Channel);
         var request = new RestRequest("translations", Method.Get)
             .AddQueryParameter("filter", $"equals(related_resource_id,\"{resourceId}\")")
             .AddQueryParameter("page[size]", "100");

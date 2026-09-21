@@ -58,7 +58,7 @@ public class FlowMessageActions(
     {
         var (flowMessageId, idChannel) = ParseFlowMessageId(input.FlowMessageId);
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
-            "Flow message", SupportedChannels, input.Channel, idChannel);
+            TranslationResourceDisplayNames.FlowMessage, SupportedChannels, input.Channel, idChannel);
         var translation = await FindTranslationAsync(flowMessageId, requestedChannel)
                           ?? throw new PluginMisconfigurationException(
                               $"Flow message '{flowMessageId}' does not have translations configured" +
@@ -74,12 +74,13 @@ public class FlowMessageActions(
         var flowMessage = await GetFlowMessageAsync(flowMessageId);
         var resourceChannel = GetFlowMessageChannel(flowMessage);
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
-            "Flow message", SupportedChannels, input.Channel, idChannel, resourceChannel);
+            TranslationResourceDisplayNames.FlowMessage,
+            SupportedChannels, input.Channel, idChannel, resourceChannel);
         var translation = await FindTranslationAsync(flowMessageId, requestedChannel)
                           ?? throw new PluginMisconfigurationException(
                               $"Flow message '{flowMessageId}' does not have translations configured yet.");
         var channel = TranslationChannelHelper.ResolveChannel(
-            "Flow message", SupportedChannels, null,
+            TranslationResourceDisplayNames.FlowMessage, SupportedChannels, null,
             requestedChannel, translation.Attributes.Channel,
             TranslationChannelHelper.GetChannelFromTranslationId(translation.Id));
         translation = await GetWithValuesAsync(translation.Id);
@@ -88,7 +89,8 @@ public class FlowMessageActions(
                 $"Flow message '{flowMessageId}' has no exportable translation values.");
 
         var locale = TranslationValuesHelper.ResolveDownloadLocale(
-            input.Locale, translation.Attributes.TargetLocales, "Flow message", flowMessageId);
+            input.Locale, translation.Attributes.TargetLocales,
+            TranslationResourceDisplayNames.FlowMessage, flowMessageId);
         var suffix = locale ?? "source";
         var exportedValues = TranslationValuesHelper.SelectExportValues(
             translation.Attributes.Values, locale);
@@ -133,12 +135,13 @@ public class FlowMessageActions(
             htmlFile.Metadata,
             TranslationResourceTypes.FlowMessage,
             SupportedChannels,
-            "Flow message");
+            TranslationResourceDisplayNames.FlowMessage);
 
         var flowMessage = await GetFlowMessageAsync(flowMessageId);
         var resourceChannel = GetFlowMessageChannel(flowMessage);
         var channel = TranslationChannelHelper.ResolveChannel(
-            "Flow message", SupportedChannels, null, fileChannel, resourceChannel);
+            TranslationResourceDisplayNames.FlowMessage,
+            SupportedChannels, null, fileChannel, resourceChannel);
         var existing = await FindTranslationAsync(flowMessageId, channel);
         TranslationDto translation;
         if (existing is null)
@@ -156,7 +159,8 @@ public class FlowMessageActions(
 
         var current = await GetWithValuesAsync(translation.Id);
         TranslationValuesHelper.ValidateValueIds(
-            htmlFile.Values, current.Attributes.Values, "Flow message", flowMessageId);
+            htmlFile.Values, current.Attributes.Values,
+            TranslationResourceDisplayNames.FlowMessage, flowMessageId);
 
         var targetLocales = current.Attributes.TargetLocales.Contains(locale, StringComparer.OrdinalIgnoreCase)
             ? null
@@ -168,7 +172,8 @@ public class FlowMessageActions(
 
     private static (string ResourceId, string? Channel) ParseFlowMessageId(string? flowMessageId) =>
         TranslationChannelHelper.ParseResourceOrTranslationId(
-            flowMessageId, TranslationResourceTypes.FlowMessage, SupportedChannels, "Flow message");
+            flowMessageId, TranslationResourceTypes.FlowMessage, SupportedChannels,
+            TranslationResourceDisplayNames.FlowMessage);
 
     private async Task<RelatedResourceDto> GetFlowMessageAsync(string flowMessageId)
     {
@@ -204,7 +209,7 @@ public class FlowMessageActions(
         string flowMessageId, string locale, string? sourceLocale, string channel)
     {
         sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
-            sourceLocale, locale, "Flow message");
+            sourceLocale, locale, TranslationResourceDisplayNames.FlowMessage);
         var request = TranslationRequestBuilder.Create(
             TranslationResourceTypes.FlowMessage, flowMessageId, sourceLocale, locale, channel);
         var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
@@ -216,7 +221,7 @@ public class FlowMessageActions(
     {
         var channel = flowMessage.Attributes["channel"]?.ToString();
         return TranslationChannelHelper.ResolveChannel(
-            "Flow message", SupportedChannels, null, channel);
+            TranslationResourceDisplayNames.FlowMessage, SupportedChannels, null, channel);
     }
 
     private static string? GetChannelFromTranslation(TranslationDto translation) =>

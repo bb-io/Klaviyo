@@ -59,7 +59,7 @@ public class TemplateActions(
     {
         var (templateId, idChannel) = ParseTemplateId(input.TemplateId);
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
-            "Template", SupportedChannels, input.Channel, idChannel);
+            TranslationResourceDisplayNames.Template, SupportedChannels, input.Channel, idChannel);
         var translation = await FindTranslationAsync(templateId, requestedChannel)
                           ?? throw new PluginMisconfigurationException(
                               $"Template '{templateId}' does not have translations configured" +
@@ -74,10 +74,10 @@ public class TemplateActions(
         var (templateId, idChannel) = ParseTemplateId(input.TemplateId);
         var locale = input.Locale?.Trim();
         var requestedChannel = TranslationChannelHelper.ResolveOptionalChannel(
-            "Template", SupportedChannels, input.Channel, idChannel);
+            TranslationResourceDisplayNames.Template, SupportedChannels, input.Channel, idChannel);
         var translation = await FindTranslationAsync(templateId, requestedChannel);
         var channel = TranslationChannelHelper.ResolveChannel(
-            "Template", SupportedChannels, TranslationChannels.Email,
+            TranslationResourceDisplayNames.Template, SupportedChannels, TranslationChannels.Email,
             requestedChannel, translation?.Attributes.Channel,
             translation is null
                 ? null
@@ -129,7 +129,8 @@ public class TemplateActions(
         locale = translation is null
             ? null
             : TranslationValuesHelper.ResolveDownloadLocale(
-                locale, translation.Attributes.TargetLocales, "Template", templateId);
+                locale, translation.Attributes.TargetLocales,
+                TranslationResourceDisplayNames.Template, templateId);
         suffix = locale ?? "source";
 
         var exportedValues = TranslationValuesHelper.SelectExportValues(values, locale);
@@ -173,10 +174,11 @@ public class TemplateActions(
             htmlFile.Metadata,
             TranslationResourceTypes.Template,
             SupportedChannels,
-            "Template");
+            TranslationResourceDisplayNames.Template);
 
         var channel = TranslationChannelHelper.ResolveChannel(
-            "Template", SupportedChannels, TranslationChannels.Email, fileChannel);
+            TranslationResourceDisplayNames.Template,
+            SupportedChannels, TranslationChannels.Email, fileChannel);
         var existing = await FindTranslationAsync(templateId, channel);
         locale = existing?.Attributes.TargetLocales.FirstOrDefault(value =>
                      string.Equals(value, locale, StringComparison.OrdinalIgnoreCase)) ?? locale;
@@ -184,7 +186,8 @@ public class TemplateActions(
             templateId, locale, input.SourceLocale, channel, existing);
         var current = await GetWithValuesAsync(translation.Id);
         TranslationValuesHelper.ValidateValueIds(
-            htmlFile.Values, current.Attributes.Values, "Template", templateId);
+            htmlFile.Values, current.Attributes.Values,
+            TranslationResourceDisplayNames.Template, templateId);
 
         var request = TranslationRequestBuilder.UpdateValues(
             translation.Id, htmlFile.Values, locale);
@@ -225,7 +228,7 @@ public class TemplateActions(
         if (existing is null)
         {
             sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
-                sourceLocale, locale, "Template");
+                sourceLocale, locale, TranslationResourceDisplayNames.Template);
             var request = TranslationRequestBuilder.Create(
                 TranslationResourceTypes.Template, templateId, sourceLocale, locale, channel);
             var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
@@ -250,7 +253,8 @@ public class TemplateActions(
 
     private static (string ResourceId, string? Channel) ParseTemplateId(string? templateId) =>
         TranslationChannelHelper.ParseResourceOrTranslationId(
-            templateId, TranslationResourceTypes.Template, SupportedChannels, "Template");
+            templateId, TranslationResourceTypes.Template, SupportedChannels,
+            TranslationResourceDisplayNames.Template);
 
     private static string? GetChannelFromTranslation(TranslationDto translation) =>
         translation.Attributes.Channel ?? TranslationChannelHelper.GetChannelFromTranslationId(translation.Id);

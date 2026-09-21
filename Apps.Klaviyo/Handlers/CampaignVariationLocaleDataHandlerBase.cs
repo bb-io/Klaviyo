@@ -20,10 +20,12 @@ public abstract class CampaignVariationLocaleDataHandlerBase(InvocationContext i
 
         var parsed = TranslationChannelHelper.ParseResourceOrTranslationId(
             variationIdInput, TranslationResourceTypes.CampaignVariation,
-            TranslationChannels.CampaignVariation, "Campaign variation");
+            TranslationChannels.CampaignVariation,
+            TranslationResourceDisplayNames.CampaignVariation);
         var variationId = parsed.ResourceId;
         channel = TranslationChannelHelper.ResolveOptionalChannel(
-            "Campaign variation", TranslationChannels.CampaignVariation, channel, parsed.Channel);
+            TranslationResourceDisplayNames.CampaignVariation,
+            TranslationChannels.CampaignVariation, channel, parsed.Channel);
         var request = new RestRequest("translations", Method.Get)
             .AddQueryParameter("filter", $"equals(related_resource_id,\"{variationId}\")")
             .AddQueryParameter("page[size]", "100");

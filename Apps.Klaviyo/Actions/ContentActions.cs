@@ -38,7 +38,8 @@ public class ContentActions(
     {
         var contentType = input.ContentType?.Trim().ToLowerInvariant() ?? string.Empty;
         TranslationChannelHelper.NormalizeOptionalChannel(
-            input.Channel, TranslationChannels.ForResourceType(contentType), "Content");
+            input.Channel, TranslationChannels.ForResourceType(contentType),
+            TranslationResourceDisplayNames.Content);
         return contentType switch
         {
             TranslationResourceTypes.Template => await DownloadTemplate(input),

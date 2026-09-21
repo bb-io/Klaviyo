@@ -23,10 +23,11 @@ public abstract class TemplateLocaleDataHandlerBase(InvocationContext invocation
 
         var parsed = TranslationChannelHelper.ParseResourceOrTranslationId(
             templateIdInput, TranslationResourceTypes.Template,
-            TranslationChannels.Template, "Template");
+            TranslationChannels.Template, TranslationResourceDisplayNames.Template);
         var templateId = parsed.ResourceId;
         channel = TranslationChannelHelper.ResolveOptionalChannel(
-            "Template", TranslationChannels.Template, channel, parsed.Channel);
+            TranslationResourceDisplayNames.Template,
+            TranslationChannels.Template, channel, parsed.Channel);
         var request = new RestRequest("translations", Method.Get)
             .AddQueryParameter("filter", $"equals(related_resource_id,\"{templateId}\")")
             .AddQueryParameter("page[size]", "10");

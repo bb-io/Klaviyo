@@ -8,9 +8,9 @@ public class ContentTypeDataSourceHandler : IStaticDataSourceItemHandler
 {
     public IEnumerable<DataSourceItem> GetData() =>
     [
-        new(TranslationResourceTypes.Template, "Template"),
-        new(TranslationResourceTypes.CampaignVariation, "Campaign variation"),
-        new(TranslationResourceTypes.FlowMessage, "Flow message"),
-        new(TranslationResourceTypes.UniversalContent, "Universal content")
+        new(TranslationResourceTypes.Template, TranslationResourceDisplayNames.Template),
+        new(TranslationResourceTypes.CampaignVariation, TranslationResourceDisplayNames.CampaignVariation),
+        new(TranslationResourceTypes.FlowMessage, TranslationResourceDisplayNames.FlowMessage),
+        new(TranslationResourceTypes.UniversalContent, TranslationResourceDisplayNames.UniversalContent)
     ];
 }

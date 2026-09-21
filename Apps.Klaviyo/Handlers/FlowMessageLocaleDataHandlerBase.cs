@@ -20,10 +20,11 @@ public abstract class FlowMessageLocaleDataHandlerBase(InvocationContext invocat
 
         var parsed = TranslationChannelHelper.ParseResourceOrTranslationId(
             flowMessageIdInput, TranslationResourceTypes.FlowMessage,
-            TranslationChannels.FlowMessage, "Flow message");
+            TranslationChannels.FlowMessage, TranslationResourceDisplayNames.FlowMessage);
         var flowMessageId = parsed.ResourceId;
         channel = TranslationChannelHelper.ResolveOptionalChannel(
-            "Flow message", TranslationChannels.FlowMessage, channel, parsed.Channel);
+            TranslationResourceDisplayNames.FlowMessage,
+            TranslationChannels.FlowMessage, channel, parsed.Channel);
         var request = new RestRequest("translations", Method.Get)
             .AddQueryParameter("filter", $"equals(related_resource_id,\"{flowMessageId}\")")
             .AddQueryParameter("page[size]", "100");
