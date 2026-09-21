@@ -49,9 +49,9 @@ public class TemplateActionTests : TestBase
         Assert.AreEqual("application/json", result.JsonFile.ContentType);
         Assert.AreEqual($"{templateId}.source.html", result.Content.Name);
         var html = await FileManager.ReadOutputTextAsync(result.Content);
-        StringAssert.Contains(html, "blackbird-ContentType");
-        StringAssert.Contains(html, "blackbird-TemplateId");
-        StringAssert.Contains(html, "blackbird-Channel");
+        StringAssert.Contains(html, "blackbird-content-type");
+        StringAssert.Contains(html, "blackbird-resource-id");
+        StringAssert.Contains(html, "blackbird-channel");
         StringAssert.Contains(html, $"content=\"{templateId}\"");
         StringAssert.Contains(html, TranslationHtmlFileCodec.TranslationKeyAttribute);
         StringAssert.Contains(await FileManager.ReadOutputTextAsync(result.JsonFile), templateId);
@@ -73,10 +73,10 @@ public class TemplateActionTests : TestBase
         Assert.AreEqual("application/json", result.JsonFile.ContentType);
         Assert.AreEqual($"{templateId}.{locale}.html", result.Content.Name);
         var html = await FileManager.ReadOutputTextAsync(result.Content);
-        StringAssert.Contains(html, "blackbird-ContentType");
-        StringAssert.Contains(html, "blackbird-TemplateId");
-        StringAssert.Contains(html, "blackbird-Channel");
-        StringAssert.Contains(html, "blackbird-TranslationId");
+        StringAssert.Contains(html, "blackbird-content-type");
+        StringAssert.Contains(html, "blackbird-resource-id");
+        StringAssert.Contains(html, "blackbird-channel");
+        StringAssert.Contains(html, "blackbird-translation-id");
         StringAssert.Contains(html, $"content=\"{templateId}\"");
         StringAssert.Contains(html, TranslationHtmlFileCodec.TranslationKeyAttribute);
         StringAssert.Contains(await FileManager.ReadOutputTextAsync(result.JsonFile), templateId);

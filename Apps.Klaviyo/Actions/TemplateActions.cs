@@ -64,7 +64,7 @@ public class TemplateActions(
                           ?? throw new PluginMisconfigurationException(
                               $"Template '{templateId}' does not have translations configured" +
                               (requestedChannel is null ? "." : $" for channel '{requestedChannel}'."));
-        return await ContentActions.GetTemplateAsync(Client, translation.Id);
+        return await TranslationResourceHelper.GetTemplateByTranslationIdAsync(Client, translation.Id);
     }
 
     [Action("Download template", Description = "Downloads the source template or an optional locale as HTML, with template data as JSON.")]
@@ -95,7 +95,8 @@ public class TemplateActions(
         }
         else
         {
-            template = await GetTemplateResourceAsync(translation.Id);
+            template = await TranslationResourceHelper.GetRelatedResourceAsync(
+                Client, translation.Id, TranslationResourceTypes.Template);
         }
         var suffix = "source";
         IReadOnlyCollection<TranslationValueDto> values;
@@ -134,12 +135,12 @@ public class TemplateActions(
         var exportedValues = TranslationValuesHelper.SelectExportValues(values, locale);
         var metadata = new Dictionary<string, string>
         {
-            ["ContentType"] = TranslationResourceTypes.Template,
-            ["TemplateId"] = templateId,
-            ["Channel"] = channel
+            [TranslationMetadataKeys.ContentType] = TranslationResourceTypes.Template,
+            [TranslationMetadataKeys.ResourceId] = templateId,
+            [TranslationMetadataKeys.Channel] = channel
         };
         if (translation is not null)
-            metadata["TranslationId"] = translation.Id;
+            metadata[TranslationMetadataKeys.TranslationId] = translation.Id;
         var html = TranslationHtmlFileCodec.Export(metadata, exportedValues);
         html = TemplateHtmlFilterService.Create(html, $"{templateId}.{suffix}.html");
         var htmlFile = await SaveAsync(html, "text/html", $"{templateId}.{suffix}.html");
@@ -170,7 +171,6 @@ public class TemplateActions(
         var (templateId, fileChannel) = TranslationChannelHelper.ResolveUploadResourceReference(
             input.TemplateId,
             htmlFile.Metadata,
-            "TemplateId",
             TranslationResourceTypes.Template,
             SupportedChannels,
             "Template");
@@ -251,9 +251,6 @@ public class TemplateActions(
     private static (string ResourceId, string? Channel) ParseTemplateId(string? templateId) =>
         TranslationChannelHelper.ParseResourceOrTranslationId(
             templateId, TranslationResourceTypes.Template, SupportedChannels, "Template");
-
-    private Task<RelatedResourceDto> GetTemplateResourceAsync(string translationId) =>
-        ContentActions.GetRelatedResourceAsync(Client, translationId, TranslationResourceTypes.Template);
 
     private static string? GetChannelFromTranslation(TranslationDto translation) =>
         translation.Attributes.Channel ?? TranslationChannelHelper.GetChannelFromTranslationId(translation.Id);

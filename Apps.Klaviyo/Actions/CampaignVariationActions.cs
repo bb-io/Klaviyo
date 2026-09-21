@@ -66,7 +66,8 @@ public class CampaignVariationActions(
                           ?? throw new PluginMisconfigurationException(
                               $"Campaign variation '{variationId}' does not have translations configured" +
                               (requestedChannel is null ? "." : $" for channel '{requestedChannel}'."));
-        return await ContentActions.GetCampaignVariationAsync(Client, translation.Id);
+        return await TranslationResourceHelper.GetCampaignVariationByTranslationIdAsync(
+            Client, translation.Id);
     }
 
     [Action("Download campaign variation", Description = "Downloads source or localized campaign variation values as HTML, with campaign variation data as JSON.")]
@@ -98,10 +99,10 @@ public class CampaignVariationActions(
         var html = TranslationHtmlFileCodec.Export(
             new Dictionary<string, string>
             {
-                ["ContentType"] = TranslationResourceTypes.CampaignVariation,
-                ["CampaignVariationId"] = variationId,
-                ["Channel"] = channel,
-                ["TranslationId"] = translation.Id
+                [TranslationMetadataKeys.ContentType] = TranslationResourceTypes.CampaignVariation,
+                [TranslationMetadataKeys.ResourceId] = variationId,
+                [TranslationMetadataKeys.Channel] = channel,
+                [TranslationMetadataKeys.TranslationId] = translation.Id
             }, exportedValues);
         var fileName = $"{variationId}.{suffix}.html";
         html = TemplateHtmlFilterService.Create(html, fileName);
@@ -135,7 +136,6 @@ public class CampaignVariationActions(
         var (variationId, fileChannel) = TranslationChannelHelper.ResolveUploadResourceReference(
             input.CampaignVariationId,
             htmlFile.Metadata,
-            "CampaignVariationId",
             TranslationResourceTypes.CampaignVariation,
             SupportedChannels,
             "Campaign variation");

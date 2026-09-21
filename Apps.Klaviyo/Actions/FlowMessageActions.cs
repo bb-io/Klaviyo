@@ -63,7 +63,7 @@ public class FlowMessageActions(
                           ?? throw new PluginMisconfigurationException(
                               $"Flow message '{flowMessageId}' does not have translations configured" +
                               (requestedChannel is null ? "." : $" for channel '{requestedChannel}'."));
-        return await ContentActions.GetFlowMessageAsync(Client, translation.Id);
+        return await TranslationResourceHelper.GetFlowMessageByTranslationIdAsync(Client, translation.Id);
     }
 
     [Action("Download flow message", Description = "Downloads source or localized flow message values as HTML, with flow message data as JSON.")]
@@ -95,10 +95,10 @@ public class FlowMessageActions(
         var html = TranslationHtmlFileCodec.Export(
             new Dictionary<string, string>
             {
-                ["ContentType"] = TranslationResourceTypes.FlowMessage,
-                ["FlowMessageId"] = flowMessageId,
-                ["Channel"] = channel,
-                ["TranslationId"] = translation.Id
+                [TranslationMetadataKeys.ContentType] = TranslationResourceTypes.FlowMessage,
+                [TranslationMetadataKeys.ResourceId] = flowMessageId,
+                [TranslationMetadataKeys.Channel] = channel,
+                [TranslationMetadataKeys.TranslationId] = translation.Id
             }, exportedValues);
         var fileName = $"{flowMessageId}.{suffix}.html";
         html = TemplateHtmlFilterService.Create(html, fileName);
@@ -131,7 +131,6 @@ public class FlowMessageActions(
         var (flowMessageId, fileChannel) = TranslationChannelHelper.ResolveUploadResourceReference(
             input.FlowMessageId,
             htmlFile.Metadata,
-            "FlowMessageId",
             TranslationResourceTypes.FlowMessage,
             SupportedChannels,
             "Flow message");

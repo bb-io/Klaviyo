@@ -60,7 +60,7 @@ public class UniversalContentActions(
         [ActionParameter] UniversalContentIdentifier input)
     {
         var universalContentId = NormalizeUniversalContentId(input.UniversalContentId);
-        return ContentActions.GetUniversalContentAsync(
+        return TranslationResourceHelper.GetUniversalContentByTranslationIdAsync(
             Client, $"template-universal-content::email::{universalContentId}");
     }
 
@@ -86,10 +86,10 @@ public class UniversalContentActions(
         var html = TranslationHtmlFileCodec.Export(
             new Dictionary<string, string>
             {
-                ["ContentType"] = TranslationResourceTypes.UniversalContent,
-                ["UniversalContentId"] = universalContentId,
-                ["Channel"] = Channel,
-                ["TranslationId"] = translation.Id
+                [TranslationMetadataKeys.ContentType] = TranslationResourceTypes.UniversalContent,
+                [TranslationMetadataKeys.ResourceId] = universalContentId,
+                [TranslationMetadataKeys.Channel] = Channel,
+                [TranslationMetadataKeys.TranslationId] = translation.Id
             }, exportedValues);
         var fileName = $"{universalContentId}.{suffix}.html";
         html = TemplateHtmlFilterService.Create(html, fileName);
@@ -123,7 +123,6 @@ public class UniversalContentActions(
         var (universalContentId, _) = TranslationChannelHelper.ResolveUploadResourceReference(
             input.UniversalContentId,
             htmlFile.Metadata,
-            "UniversalContentId",
             TranslationResourceTypes.UniversalContent,
             TranslationChannels.UniversalContent,
             "Universal content");

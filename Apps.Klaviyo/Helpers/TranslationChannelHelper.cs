@@ -1,3 +1,4 @@
+using Apps.Klaviyo.Constants;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 
 namespace Apps.Klaviyo.Helpers;
@@ -7,7 +8,6 @@ public static class TranslationChannelHelper
     public static (string ResourceId, string? Channel) ResolveUploadResourceReference(
         string? inputResourceId,
         IReadOnlyDictionary<string, string> metadata,
-        string resourceIdMetadataKey,
         string resourceType,
         IReadOnlyCollection<string> supportedChannels,
         string resourceDisplayName)
@@ -18,19 +18,29 @@ public static class TranslationChannelHelper
             references.Add(ParseResourceOrTranslationId(
                 inputResourceId, resourceType, supportedChannels, resourceDisplayName));
 
-        if (metadata.TryGetValue(resourceIdMetadataKey, out var metadataResourceId) &&
-            !string.IsNullOrWhiteSpace(metadataResourceId))
-            references.Add(ParseResourceOrTranslationId(
-                metadataResourceId, resourceType, supportedChannels, resourceDisplayName));
+        AddMetadataReference(TranslationMetadataKeys.ResourceId);
 
-        if (metadata.TryGetValue("TranslationId", out var metadataTranslationId) &&
-            !string.IsNullOrWhiteSpace(metadataTranslationId))
+        AddTranslationMetadataReference(TranslationMetadataKeys.TranslationId);
+
+        void AddMetadataReference(string metadataKey)
         {
+            if (metadata.TryGetValue(metadataKey, out var metadataResourceId) &&
+                !string.IsNullOrWhiteSpace(metadataResourceId))
+                references.Add(ParseResourceOrTranslationId(
+                    metadataResourceId, resourceType, supportedChannels, resourceDisplayName));
+        }
+
+        void AddTranslationMetadataReference(string metadataKey)
+        {
+            if (!metadata.TryGetValue(metadataKey, out var metadataTranslationId) ||
+                string.IsNullOrWhiteSpace(metadataTranslationId))
+                return;
+
             var parsedTranslation = ParseResourceOrTranslationId(
                 metadataTranslationId, resourceType, supportedChannels, resourceDisplayName);
             if (parsedTranslation.Channel is null)
                 throw new PluginMisconfigurationException(
-                    "The TranslationId file metadata must contain a full translation ID.");
+                    $"The {TranslationMetadataKeys.TranslationId} file metadata must contain a full translation ID.");
             references.Add(parsedTranslation);
         }
 
@@ -47,11 +57,13 @@ public static class TranslationChannelHelper
                 $"The content file belongs to {resourceDisplayName.ToLowerInvariant()} '{resourceIds.Last()}', " +
                 $"not '{resourceIds.First()}'.");
 
-        metadata.TryGetValue("Channel", out var metadataChannel);
+        metadata.TryGetValue(TranslationMetadataKeys.Channel, out var metadataChannel);
         var channel = ResolveOptionalChannel(
             resourceDisplayName,
             supportedChannels,
-            references.Select(reference => reference.Channel).Append(metadataChannel).ToArray());
+            references.Select(reference => reference.Channel)
+                .Append(metadataChannel)
+                .ToArray());
 
         return (resourceIds[0], channel);
     }

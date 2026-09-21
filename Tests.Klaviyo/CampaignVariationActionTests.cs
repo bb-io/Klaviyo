@@ -54,10 +54,10 @@ public class CampaignVariationActionTests : TestBase
         Assert.AreEqual("application/json", result.JsonFile.ContentType);
         Assert.AreEqual($"{variationId}.source.html", result.Content.Name);
         var html = await FileManager.ReadOutputTextAsync(result.Content);
-        StringAssert.Contains(html, "blackbird-ContentType");
-        StringAssert.Contains(html, "blackbird-CampaignVariationId");
-        StringAssert.Contains(html, "blackbird-Channel");
-        StringAssert.Contains(html, "blackbird-TranslationId");
+        StringAssert.Contains(html, "blackbird-content-type");
+        StringAssert.Contains(html, "blackbird-resource-id");
+        StringAssert.Contains(html, "blackbird-channel");
+        StringAssert.Contains(html, "blackbird-translation-id");
         StringAssert.Contains(html, $"content=\"{variationId}\"");
         StringAssert.Contains(html, TranslationHtmlFileCodec.TranslationKeyAttribute);
         StringAssert.Contains(await FileManager.ReadOutputTextAsync(result.JsonFile), variationId);
@@ -77,10 +77,10 @@ public class CampaignVariationActionTests : TestBase
 
         Assert.AreEqual($"{variationId}.{locale}.html", result.Content.Name);
         var html = await FileManager.ReadOutputTextAsync(result.Content);
-        StringAssert.Contains(html, "blackbird-ContentType");
-        StringAssert.Contains(html, "blackbird-CampaignVariationId");
-        StringAssert.Contains(html, "blackbird-Channel");
-        StringAssert.Contains(html, "blackbird-TranslationId");
+        StringAssert.Contains(html, "blackbird-content-type");
+        StringAssert.Contains(html, "blackbird-resource-id");
+        StringAssert.Contains(html, "blackbird-channel");
+        StringAssert.Contains(html, "blackbird-translation-id");
         StringAssert.Contains(html, TranslationHtmlFileCodec.TranslationKeyAttribute);
     }
 
