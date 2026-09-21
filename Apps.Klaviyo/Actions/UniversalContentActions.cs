@@ -22,7 +22,6 @@ public class UniversalContentActions(
     InvocationContext invocationContext,
     IFileManagementClient fileManagementClient) : Invocable(invocationContext)
 {
-    private const string ResourceType = "template-universal-content";
     private const string Channel = "email";
 
     [Action("Search universal content",
@@ -125,7 +124,7 @@ public class UniversalContentActions(
             input.UniversalContentId,
             htmlFile.Metadata,
             "UniversalContentId",
-            ResourceType,
+            TranslationResourceTypes.UniversalContent,
             TranslationChannels.UniversalContent,
             "Universal content");
 
@@ -167,7 +166,7 @@ public class UniversalContentActions(
 
         var parts = normalized.Split("::", StringSplitOptions.None);
         if (parts.Length == 3 &&
-            string.Equals(parts[0], ResourceType, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(parts[0], TranslationResourceTypes.UniversalContent, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(parts[1], Channel, StringComparison.OrdinalIgnoreCase) &&
             !string.IsNullOrWhiteSpace(parts[2]))
             return parts[2];
@@ -190,8 +189,8 @@ public class UniversalContentActions(
         var request = TranslationRequestBuilder.FindByResourceId(universalContentId);
         var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<TranslationDto>>(request);
         return response.Data.FirstOrDefault(item =>
-            item.Id.StartsWith($"{ResourceType}::{Channel}::", StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(item.Relationships[ResourceType]?["data"]?["id"]?.ToString(),
+            item.Id.StartsWith($"{TranslationResourceTypes.UniversalContent}::{Channel}::", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(item.Relationships[TranslationResourceTypes.UniversalContent]?["data"]?["id"]?.ToString(),
                 universalContentId, StringComparison.Ordinal));
     }
 
@@ -209,7 +208,7 @@ public class UniversalContentActions(
         sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
             sourceLocale, locale, "Universal content");
         var request = TranslationRequestBuilder.Create(
-            ResourceType, universalContentId, sourceLocale, locale, Channel);
+            TranslationResourceTypes.UniversalContent, universalContentId, sourceLocale, locale, Channel);
         var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
         return response.Data ?? throw new PluginApplicationException(
             $"Klaviyo did not return the created translation for '{universalContentId}'.");

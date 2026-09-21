@@ -22,7 +22,6 @@ public class FlowMessageActions(
     InvocationContext invocationContext,
     IFileManagementClient fileManagementClient) : Invocable(invocationContext)
 {
-    private const string ResourceType = "flow-message";
     private static readonly string[] SupportedChannels = TranslationChannels.FlowMessage;
 
     [Action("Search flow messages", Description = "Searches translations associated with flow messages.")]
@@ -133,7 +132,7 @@ public class FlowMessageActions(
             input.FlowMessageId,
             htmlFile.Metadata,
             "FlowMessageId",
-            ResourceType,
+            TranslationResourceTypes.FlowMessage,
             SupportedChannels,
             "Flow message");
 
@@ -170,7 +169,7 @@ public class FlowMessageActions(
 
     private static (string ResourceId, string? Channel) ParseFlowMessageId(string? flowMessageId) =>
         TranslationChannelHelper.ParseResourceOrTranslationId(
-            flowMessageId, ResourceType, SupportedChannels, "Flow message");
+            flowMessageId, TranslationResourceTypes.FlowMessage, SupportedChannels, "Flow message");
 
     private async Task<RelatedResourceDto> GetFlowMessageAsync(string flowMessageId)
     {
@@ -186,11 +185,11 @@ public class FlowMessageActions(
         var request = TranslationRequestBuilder.FindByResourceId(flowMessageId);
         var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<TranslationDto>>(request);
         return response.Data.FirstOrDefault(item =>
-            item.Id.StartsWith($"{ResourceType}::", StringComparison.OrdinalIgnoreCase) &&
+            item.Id.StartsWith($"{TranslationResourceTypes.FlowMessage}::", StringComparison.OrdinalIgnoreCase) &&
             SupportedChannels.Contains(GetChannelFromTranslation(item), StringComparer.OrdinalIgnoreCase) &&
             (channel is null || string.Equals(GetChannelFromTranslation(item), channel,
                 StringComparison.OrdinalIgnoreCase)) &&
-            string.Equals(item.Relationships[ResourceType]?["data"]?["id"]?.ToString(),
+            string.Equals(item.Relationships[TranslationResourceTypes.FlowMessage]?["data"]?["id"]?.ToString(),
                 flowMessageId, StringComparison.Ordinal));
     }
 
@@ -208,7 +207,7 @@ public class FlowMessageActions(
         sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
             sourceLocale, locale, "Flow message");
         var request = TranslationRequestBuilder.Create(
-            ResourceType, flowMessageId, sourceLocale, locale, channel);
+            TranslationResourceTypes.FlowMessage, flowMessageId, sourceLocale, locale, channel);
         var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
         return response.Data ?? throw new PluginApplicationException(
             $"Klaviyo did not return the created translation for '{flowMessageId}'.");

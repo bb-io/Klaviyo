@@ -22,7 +22,6 @@ public class CampaignVariationActions(
     InvocationContext invocationContext,
     IFileManagementClient fileManagementClient) : Invocable(invocationContext)
 {
-    private const string ResourceType = "campaign-variation";
     private static readonly string[] SupportedChannels = TranslationChannels.CampaignVariation;
 
     [Action("Search campaign variations",
@@ -137,7 +136,7 @@ public class CampaignVariationActions(
             input.CampaignVariationId,
             htmlFile.Metadata,
             "CampaignVariationId",
-            ResourceType,
+            TranslationResourceTypes.CampaignVariation,
             SupportedChannels,
             "Campaign variation");
 
@@ -174,7 +173,7 @@ public class CampaignVariationActions(
 
     private static (string ResourceId, string? Channel) ParseCampaignVariationId(string? variationId) =>
         TranslationChannelHelper.ParseResourceOrTranslationId(
-            variationId, ResourceType, SupportedChannels, "Campaign variation");
+            variationId, TranslationResourceTypes.CampaignVariation, SupportedChannels, "Campaign variation");
 
     private async Task<RelatedResourceDto> GetCampaignVariationAsync(string variationId)
     {
@@ -187,7 +186,7 @@ public class CampaignVariationActions(
         {
             var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<RelatedResourceDto>>(request);
             var variation = response.Included.FirstOrDefault(item =>
-                string.Equals(item.Type, ResourceType, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(item.Type, TranslationResourceTypes.CampaignVariation, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(item.Id, variationId, StringComparison.Ordinal));
             if (variation is not null)
                 return variation;
@@ -207,11 +206,11 @@ public class CampaignVariationActions(
         var request = TranslationRequestBuilder.FindByResourceId(variationId);
         var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<TranslationDto>>(request);
         return response.Data.FirstOrDefault(item =>
-            item.Id.StartsWith($"{ResourceType}::", StringComparison.OrdinalIgnoreCase) &&
+            item.Id.StartsWith($"{TranslationResourceTypes.CampaignVariation}::", StringComparison.OrdinalIgnoreCase) &&
             SupportedChannels.Contains(GetChannelFromTranslation(item), StringComparer.OrdinalIgnoreCase) &&
             (channel is null || string.Equals(GetChannelFromTranslation(item), channel,
                 StringComparison.OrdinalIgnoreCase)) &&
-            string.Equals(item.Relationships[ResourceType]?["data"]?["id"]?.ToString(),
+            string.Equals(item.Relationships[TranslationResourceTypes.CampaignVariation]?["data"]?["id"]?.ToString(),
                 variationId, StringComparison.Ordinal));
     }
 
@@ -229,7 +228,7 @@ public class CampaignVariationActions(
         sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
             sourceLocale, locale, "Campaign variation");
         var request = TranslationRequestBuilder.Create(
-            ResourceType, variationId, sourceLocale, locale, channel);
+            TranslationResourceTypes.CampaignVariation, variationId, sourceLocale, locale, channel);
         var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
         return response.Data ?? throw new PluginApplicationException(
             $"No translation created for '{variationId}'.");

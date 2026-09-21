@@ -22,7 +22,6 @@ public class TemplateActions(
     InvocationContext invocationContext,
     IFileManagementClient fileManagementClient) : Invocable(invocationContext)
 {
-    private const string ResourceType = "template";
     private static readonly string[] SupportedChannels = TranslationChannels.Template;
 
     [Action("Search templates", Description = "Searches translations associated with templates.")]
@@ -172,7 +171,7 @@ public class TemplateActions(
             input.TemplateId,
             htmlFile.Metadata,
             "TemplateId",
-            ResourceType,
+            TranslationResourceTypes.Template,
             SupportedChannels,
             "Template");
 
@@ -205,7 +204,7 @@ public class TemplateActions(
         var request = TranslationRequestBuilder.FindByResourceId(templateId);
         var response = await Client.ExecuteWithErrorHandling<JsonApiListResponse<TranslationDto>>(request);
         return response.Data.FirstOrDefault(item =>
-            item.Id.StartsWith($"{ResourceType}::", StringComparison.OrdinalIgnoreCase) &&
+            item.Id.StartsWith($"{TranslationResourceTypes.Template}::", StringComparison.OrdinalIgnoreCase) &&
             SupportedChannels.Contains(GetChannelFromTranslation(item), StringComparer.OrdinalIgnoreCase) &&
             (channel is null || string.Equals(GetChannelFromTranslation(item), channel,
                 StringComparison.OrdinalIgnoreCase)) &&
@@ -228,7 +227,7 @@ public class TemplateActions(
             sourceLocale = TranslationValuesHelper.ValidateSourceLocale(
                 sourceLocale, locale, "Template");
             var request = TranslationRequestBuilder.Create(
-                ResourceType, templateId, sourceLocale, locale, channel);
+                TranslationResourceTypes.Template, templateId, sourceLocale, locale, channel);
             var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
             return response.Data ?? throw new PluginApplicationException(
                 $"Klaviyo did not return the created translation for '{templateId}'.");
@@ -251,10 +250,10 @@ public class TemplateActions(
 
     private static (string ResourceId, string? Channel) ParseTemplateId(string? templateId) =>
         TranslationChannelHelper.ParseResourceOrTranslationId(
-            templateId, ResourceType, SupportedChannels, "Template");
+            templateId, TranslationResourceTypes.Template, SupportedChannels, "Template");
 
     private Task<RelatedResourceDto> GetTemplateResourceAsync(string translationId) =>
-        ContentActions.GetRelatedResourceAsync(Client, translationId, ResourceType);
+        ContentActions.GetRelatedResourceAsync(Client, translationId, TranslationResourceTypes.Template);
 
     private static string? GetChannelFromTranslation(TranslationDto translation) =>
         translation.Attributes.Channel ?? TranslationChannelHelper.GetChannelFromTranslationId(translation.Id);
