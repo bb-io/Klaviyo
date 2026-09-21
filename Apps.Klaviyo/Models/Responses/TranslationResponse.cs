@@ -14,7 +14,7 @@ public class TranslationResponse : IDownloadContentInput
     [Display("Resource type")]
     public string ResourceType { get; set; } = string.Empty;
 
-    [Display("Name")]
+    [Display("Translation name")]
     public string? Name { get; set; }
 
     [Display("Channel")]

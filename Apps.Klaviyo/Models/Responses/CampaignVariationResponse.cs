@@ -7,7 +7,7 @@ public class CampaignVariationResponse
     [Display("Campaign variation ID")]
     public string Id { get; set; } = string.Empty;
 
-    [Display("Name")]
+    [Display("Campaign variation name")]
     public string? Name { get; set; }
 
     [Display("Channel")]

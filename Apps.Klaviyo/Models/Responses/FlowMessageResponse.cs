@@ -7,7 +7,7 @@ public class FlowMessageResponse
     [Display("Flow message ID")]
     public string Id { get; set; } = string.Empty;
 
-    [Display("Name")]
+    [Display("Flow message name")]
     public string? Name { get; set; }
 
     [Display("Channel")]

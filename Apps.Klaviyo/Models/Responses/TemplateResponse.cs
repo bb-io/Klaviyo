@@ -7,7 +7,7 @@ public class TemplateResponse
     [Display("Template ID")]
     public string Id { get; set; } = string.Empty;
 
-    [Display("Name")]
+    [Display("Template name")]
     public string? Name { get; set; }
 
     [Display("Channel")]

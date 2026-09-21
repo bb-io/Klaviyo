@@ -7,7 +7,7 @@ public class UniversalContentResponse
     [Display("Universal content ID")]
     public string Id { get; set; } = string.Empty;
 
-    [Display("Name")]
+    [Display("Universal content name")]
     public string? Name { get; set; }
 
     [Display("Content type")]

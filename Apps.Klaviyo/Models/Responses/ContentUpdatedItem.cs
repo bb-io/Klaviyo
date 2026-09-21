@@ -14,7 +14,7 @@ public class ContentUpdatedItem : IDownloadContentInput
     [Display("Resource ID")]
     public string ResourceId { get; set; } = string.Empty;
 
-    [Display("Name")]
+    [Display("Content name")]
     public string? Name { get; set; }
 
     [Display("Channel")]
