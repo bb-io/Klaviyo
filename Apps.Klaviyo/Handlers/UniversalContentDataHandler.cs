@@ -11,12 +11,12 @@ public class UniversalContentDataHandler(InvocationContext invocationContext)
     public async Task<IEnumerable<DataSourceItem>> GetDataAsync(
         DataSourceContext context, CancellationToken cancellationToken)
     {
-        var request = new RestRequest("template-universal-content", Method.Get)
-            .AddQueryParameter("page[size]", "100");
+        var request = new RestRequest("template-universal-content", Method.Get);
         var search = context.SearchString?.Trim() ?? string.Empty;
         var results = new List<DataSourceItem>();
 
-        await foreach (var response in Client.PaginateAsync<RelatedResourceDto>(request, cancellationToken))
+        await foreach (var response in Client.PaginateAsync<RelatedResourceDto>(
+                           request, cancellationToken: cancellationToken))
         {
             results.AddRange(response.Data
                 .Where(item => string.Equals(item.Type, "template-universal-content", StringComparison.OrdinalIgnoreCase))

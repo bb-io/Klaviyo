@@ -10,9 +10,9 @@ namespace Apps.Klaviyo.Models.Requests;
 
 public class UploadContentRequest : IUploadContentInput
 {
-    [Display("Content type")]
+    [Display("Content type", Description = "If omitted, the content type is read from the downloaded content metadata.")]
     [StaticDataSource(typeof(ContentTypeDataSourceHandler))]
-    public string ContentType { get; set; } = string.Empty;
+    public string? ContentType { get; set; }
 
     [Display("Content ID", Description = "If omitted, the ID is read from the downloaded content metadata.")]
     [DataSource(typeof(UploadContentDataHandler))]

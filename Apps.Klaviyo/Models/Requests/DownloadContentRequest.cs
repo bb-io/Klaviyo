@@ -13,6 +13,10 @@ public class DownloadContentRequest : IDownloadContentInput
     [StaticDataSource(typeof(ContentTypeDataSourceHandler))]
     public string ContentType { get; set; } = string.Empty;
 
+    [Display("Channel", Description = "Content channel. If omitted, it is inferred from the translation.")]
+    [DataSource(typeof(DownloadContentChannelDataHandler))]
+    public string? Channel { get; set; }
+
     [Display("Content ID", Description = "ID of the selected content item.")]
     [DataSource(typeof(DownloadContentDataHandler))]
     public string ContentId { get; set; } = string.Empty;

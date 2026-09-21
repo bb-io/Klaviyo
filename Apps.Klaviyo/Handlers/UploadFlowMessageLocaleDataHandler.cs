@@ -14,5 +14,5 @@ public class UploadFlowMessageLocaleDataHandler(
         DataSourceContext context, CancellationToken cancellationToken) =>
         string.IsNullOrWhiteSpace(input.FlowMessageId)
             ? Task.FromResult<IEnumerable<DataSourceItem>>([])
-            : GetLocalesAsync(input.FlowMessageId, context, cancellationToken);
+            : GetLocalesAsync(input.FlowMessageId, null, context, cancellationToken);
 }

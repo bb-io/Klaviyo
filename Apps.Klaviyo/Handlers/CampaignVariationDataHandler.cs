@@ -1,4 +1,5 @@
 using Apps.Klaviyo.Api.Dtos;
+using Apps.Klaviyo.Constants;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
@@ -12,12 +13,12 @@ public class CampaignVariationDataHandler(InvocationContext invocationContext)
         DataSourceContext context, CancellationToken cancellationToken)
     {
         var request = new RestRequest("campaign-messages", Method.Get)
-            .AddQueryParameter("include", "campaign-variations")
-            .AddQueryParameter("page[size]", "100");
+            .AddQueryParameter("include", "campaign-variations");
         var search = context.SearchString?.Trim() ?? string.Empty;
         var results = new List<DataSourceItem>();
 
-        await foreach (var response in Client.PaginateAsync<RelatedResourceDto>(request, cancellationToken))
+        await foreach (var response in Client.PaginateAsync<RelatedResourceDto>(
+                           request, cancellationToken: cancellationToken))
         {
             results.AddRange(response.Included
                 .Where(item => string.Equals(item.Type, "campaign-variation", StringComparison.OrdinalIgnoreCase))
@@ -27,12 +28,15 @@ public class CampaignVariationDataHandler(InvocationContext invocationContext)
                     Name = item.Attributes.SelectToken("definition.name")?.ToString(),
                     Channel = item.Attributes.SelectToken("definition.details.channel")?.ToString()
                 })
-                .Where(item => string.Equals(item.Channel, "email", StringComparison.OrdinalIgnoreCase))
+                .Where(item => TranslationChannels.CampaignVariation.Contains(
+                    item.Channel, StringComparer.OrdinalIgnoreCase))
                 .Where(item => string.IsNullOrEmpty(search) ||
                                item.Id.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                                (item.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
                 .Select(item => new DataSourceItem(item.Id,
-                    string.IsNullOrWhiteSpace(item.Name) ? item.Id : $"{item.Name} ({item.Id})")));
+                    string.IsNullOrWhiteSpace(item.Name)
+                        ? $"{item.Id} ({item.Channel})"
+                        : $"{item.Name} ({item.Channel}, {item.Id})")));
         }
 
         return results.OrderBy(item => item.DisplayName).ToArray();

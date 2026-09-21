@@ -1,7 +1,7 @@
 using Apps.Klaviyo.Api.Dtos;
+using Apps.Klaviyo.Actions;
 using Apps.Klaviyo.Constants;
 using Apps.Klaviyo.Helpers;
-using Apps.Klaviyo.Services;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
@@ -13,8 +13,9 @@ public abstract class ContentLocaleDataHandlerBase(InvocationContext invocationC
     : Invocable(invocationContext)
 {
     protected async Task<IEnumerable<DataSourceItem>> GetLocalesAsync(
-        string contentType,
+        string? contentType,
         string contentId,
+        string? channel,
         DataSourceContext context,
         CancellationToken cancellationToken)
     {
@@ -23,8 +24,13 @@ public abstract class ContentLocaleDataHandlerBase(InvocationContext invocationC
         if (string.IsNullOrWhiteSpace(contentId))
             throw new PluginMisconfigurationException("Please select content first.");
 
-        var (resourceType, resourceId) = Normalize(
-            contentType.Trim().ToLowerInvariant(), contentId);
+        var resourceType = NormalizeResourceType(contentType.Trim().ToLowerInvariant());
+        var supportedChannels = TranslationChannels.ForResourceType(resourceType);
+        var parsed = TranslationChannelHelper.ParseResourceOrTranslationId(
+            contentId, resourceType, supportedChannels, "Content");
+        var resourceId = parsed.ResourceId;
+        channel = TranslationChannelHelper.ResolveOptionalChannel(
+            "Content", supportedChannels, channel, parsed.Channel);
         var request = new RestRequest("translations", Method.Get)
             .AddQueryParameter("filter", $"equals(related_resource_id,\"{resourceId}\")")
             .AddQueryParameter("page[size]", "100");
@@ -32,7 +38,12 @@ public abstract class ContentLocaleDataHandlerBase(InvocationContext invocationC
         cancellationToken.ThrowIfCancellationRequested();
 
         var translation = response.Data.FirstOrDefault(item =>
-            item.Id.StartsWith($"{resourceType}::email::", StringComparison.OrdinalIgnoreCase) &&
+            item.Id.StartsWith($"{resourceType}::", StringComparison.OrdinalIgnoreCase) &&
+            supportedChannels.Contains(
+                item.Attributes.Channel ?? GetChannelFromId(item.Id), StringComparer.OrdinalIgnoreCase) &&
+            (channel is null || string.Equals(
+                item.Attributes.Channel ?? GetChannelFromId(item.Id), channel,
+                StringComparison.OrdinalIgnoreCase)) &&
             string.Equals(item.Relationships[resourceType]?["data"]?["id"]?.ToString(),
                 resourceId, StringComparison.Ordinal));
         var search = context.SearchString?.Trim() ?? string.Empty;
@@ -46,18 +57,18 @@ public abstract class ContentLocaleDataHandlerBase(InvocationContext invocationC
                ?? [];
     }
 
-    private static (string ResourceType, string ResourceId) Normalize(
-        string contentType,
-        string contentId) => contentType switch
+    private static string NormalizeResourceType(string contentType) => contentType switch
     {
-        TranslationResourceTypes.Template =>
-            (contentType, TemplateFileService.NormalizeTemplateId(contentId)),
-        TranslationResourceTypes.CampaignVariation =>
-            (contentType, CampaignVariationFileService.NormalizeCampaignVariationId(contentId)),
-        TranslationResourceTypes.FlowMessage =>
-            (contentType, FlowMessageFileService.NormalizeFlowMessageId(contentId)),
-        TranslationResourceTypes.UniversalContent =>
-            (contentType, UniversalContentFileService.NormalizeUniversalContentId(contentId)),
+        TranslationResourceTypes.Template => contentType,
+        TranslationResourceTypes.CampaignVariation => contentType,
+        TranslationResourceTypes.FlowMessage => contentType,
+        TranslationResourceTypes.UniversalContent => contentType,
         _ => throw ExceptionHelper.UnsupportedContentType()
     };
+
+    private static string? GetChannelFromId(string translationId)
+    {
+        var parts = translationId.Split("::", StringSplitOptions.None);
+        return parts.Length == 3 ? parts[1] : null;
+    }
 }

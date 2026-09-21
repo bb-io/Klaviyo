@@ -368,3 +368,5 @@ FodyWeavers.xsd
 
 */appsettings.json
 /Tests.Klaviyo/appsettings.json
+/Tests.Klaviyo/TestFiles/Output
+/Tests.Klaviyo/TestFiles/Input

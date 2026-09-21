@@ -8,6 +8,7 @@ using HtmlAgilityPack;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace Apps.Klaviyo.Api;
@@ -57,8 +58,16 @@ public class KlaviyoClient : BlackBirdRestClient
 
     public async IAsyncEnumerable<JsonApiListResponse<T>> PaginateAsync<T>(
         RestRequest request,
+        int pageSize = 100,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        if (pageSize <= 0)
+            throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be greater than zero.");
+
+        if (!request.Parameters.Any(parameter =>
+                string.Equals(parameter.Name, "page[size]", StringComparison.OrdinalIgnoreCase)))
+            request.AddQueryParameter("page[size]", pageSize.ToString(CultureInfo.InvariantCulture));
+
         var visitedPages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         while (true)

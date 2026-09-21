@@ -14,5 +14,5 @@ public class UploadCampaignVariationLocaleDataHandler(
         DataSourceContext context, CancellationToken cancellationToken) =>
         string.IsNullOrWhiteSpace(input.CampaignVariationId)
             ? Task.FromResult<IEnumerable<DataSourceItem>>([])
-            : GetLocalesAsync(input.CampaignVariationId, context, cancellationToken);
+            : GetLocalesAsync(input.CampaignVariationId, null, context, cancellationToken);
 }

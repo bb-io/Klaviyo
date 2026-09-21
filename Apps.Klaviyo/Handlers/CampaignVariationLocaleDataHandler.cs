@@ -16,5 +16,5 @@ public class CampaignVariationLocaleDataHandler(
 {
     public Task<IEnumerable<DataSourceItem>> GetDataAsync(
         DataSourceContext context, CancellationToken cancellationToken) =>
-        GetLocalesAsync(input.CampaignVariationId, context, cancellationToken);
+        GetLocalesAsync(input.CampaignVariationId, input.Channel, context, cancellationToken);
 }

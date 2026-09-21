@@ -8,7 +8,6 @@ namespace Tests.Klaviyo;
 public class HandlerTests : TestBase
 {
     [TestMethod]
-    [TestCategory("Integration")]
     public async Task Campaign_variation_handler_uses_campaign_messages_endpoint()
     {
         var handler = new CampaignVariationDataHandler(InvocationContext);

@@ -7,9 +7,7 @@ public class Application : IApplication, ICategoryProvider
 {
     public IEnumerable<ApplicationCategory> Categories
     {
-        get => [
-            ApplicationCategory.Marketing
-            ];
+        get => [ApplicationCategory.Marketing];
         set { }
     }
 

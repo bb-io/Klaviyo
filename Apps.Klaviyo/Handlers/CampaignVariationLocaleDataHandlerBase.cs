@@ -1,5 +1,7 @@
 using Apps.Klaviyo.Api.Dtos;
-using Apps.Klaviyo.Services;
+using Apps.Klaviyo.Actions;
+using Apps.Klaviyo.Constants;
+using Apps.Klaviyo.Helpers;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
@@ -11,12 +13,17 @@ public abstract class CampaignVariationLocaleDataHandlerBase(InvocationContext i
     : Invocable(invocationContext)
 {
     protected async Task<IEnumerable<DataSourceItem>> GetLocalesAsync(
-        string variationIdInput, DataSourceContext context, CancellationToken cancellationToken)
+        string variationIdInput, string? channel, DataSourceContext context, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(variationIdInput))
             throw new PluginMisconfigurationException("Please select a campaign variation first.");
 
-        var variationId = CampaignVariationFileService.NormalizeCampaignVariationId(variationIdInput);
+        var parsed = TranslationChannelHelper.ParseResourceOrTranslationId(
+            variationIdInput, TranslationResourceTypes.CampaignVariation,
+            TranslationChannels.CampaignVariation, "Campaign variation");
+        var variationId = parsed.ResourceId;
+        channel = TranslationChannelHelper.ResolveOptionalChannel(
+            "Campaign variation", TranslationChannels.CampaignVariation, channel, parsed.Channel);
         var request = new RestRequest("translations", Method.Get)
             .AddQueryParameter("filter", $"equals(related_resource_id,\"{variationId}\")")
             .AddQueryParameter("page[size]", "100");
@@ -24,7 +31,11 @@ public abstract class CampaignVariationLocaleDataHandlerBase(InvocationContext i
         cancellationToken.ThrowIfCancellationRequested();
 
         var translation = response.Data.FirstOrDefault(item =>
-            item.Id.StartsWith("campaign-variation::email::", StringComparison.OrdinalIgnoreCase) &&
+            item.Id.StartsWith("campaign-variation::", StringComparison.OrdinalIgnoreCase) &&
+            TranslationChannels.CampaignVariation.Contains(
+                item.Attributes.Channel, StringComparer.OrdinalIgnoreCase) &&
+            (channel is null || string.Equals(item.Attributes.Channel, channel,
+                StringComparison.OrdinalIgnoreCase)) &&
             string.Equals(item.Relationships["campaign-variation"]?["data"]?["id"]?.ToString(),
                 variationId, StringComparison.Ordinal));
         var search = context.SearchString?.Trim() ?? string.Empty;

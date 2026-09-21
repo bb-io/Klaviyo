@@ -1,5 +1,5 @@
 using Apps.Klaviyo.Api.Dtos;
-using Apps.Klaviyo.Services;
+using Apps.Klaviyo.Actions;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
@@ -16,7 +16,7 @@ public abstract class UniversalContentLocaleDataHandlerBase(InvocationContext in
         if (string.IsNullOrWhiteSpace(universalContentIdInput))
             throw new PluginMisconfigurationException("Please select universal content first.");
 
-        var universalContentId = UniversalContentFileService.NormalizeUniversalContentId(universalContentIdInput);
+        var universalContentId = UniversalContentActions.NormalizeUniversalContentId(universalContentIdInput);
         var request = new RestRequest("translations", Method.Get)
             .AddQueryParameter("filter", $"equals(related_resource_id,\"{universalContentId}\")")
             .AddQueryParameter("page[size]", "100");

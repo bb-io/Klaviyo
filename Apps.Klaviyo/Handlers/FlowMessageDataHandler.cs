@@ -1,4 +1,5 @@
 using Apps.Klaviyo.Api.Dtos;
+using Apps.Klaviyo.Constants;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
@@ -12,31 +13,36 @@ public class FlowMessageDataHandler(InvocationContext invocationContext)
         DataSourceContext context, CancellationToken cancellationToken)
     {
         var request = new RestRequest("translations", Method.Get)
-            .AddQueryParameter("include", "flow-message")
-            .AddQueryParameter("page[size]", "100");
+            .AddQueryParameter("include", "flow-message");
         var search = context.SearchString?.Trim() ?? string.Empty;
         var results = new List<DataSourceItem>();
 
-        await foreach (var response in Client.PaginateAsync<TranslationDto>(request, cancellationToken))
+        await foreach (var response in Client.PaginateAsync<TranslationDto>(
+                           request, cancellationToken: cancellationToken))
         {
             var includedById = response.Included
                 .Where(item => string.Equals(item.Type, "flow-message", StringComparison.OrdinalIgnoreCase))
                 .GroupBy(item => item.Id, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
             results.AddRange(response.Data
-                .Where(item => item.Id.StartsWith("flow-message::email::", StringComparison.OrdinalIgnoreCase))
+                .Where(item => item.Id.StartsWith("flow-message::", StringComparison.OrdinalIgnoreCase) &&
+                               TranslationChannels.FlowMessage.Contains(
+                                   item.Attributes.Channel, StringComparer.OrdinalIgnoreCase))
                 .Select(item => new
                 {
                     Id = item.Relationships["flow-message"]?["data"]?["id"]?.ToString()
                          ?? item.Id.Split("::", StringSplitOptions.None).LastOrDefault(),
-                    Name = GetName(item, includedById)
+                    Name = GetName(item, includedById),
+                    Channel = item.Attributes.Channel
                 })
                 .Where(item => !string.IsNullOrWhiteSpace(item.Id))
                 .Where(item => string.IsNullOrEmpty(search) ||
                                item.Id!.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                                (item.Name?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
                 .Select(item => new DataSourceItem(item.Id!,
-                    string.IsNullOrWhiteSpace(item.Name) ? item.Id! : $"{item.Name} ({item.Id})")));
+                    string.IsNullOrWhiteSpace(item.Name)
+                        ? $"{item.Id} ({item.Channel})"
+                        : $"{item.Name} ({item.Channel}, {item.Id})")));
         }
 
         return results

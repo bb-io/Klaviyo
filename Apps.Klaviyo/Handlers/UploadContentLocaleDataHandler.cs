@@ -15,5 +15,5 @@ public class UploadContentLocaleDataHandler(
         CancellationToken cancellationToken) =>
         string.IsNullOrWhiteSpace(input.ContentId)
             ? Task.FromResult<IEnumerable<DataSourceItem>>([])
-            : GetLocalesAsync(input.ContentType, input.ContentId, context, cancellationToken);
+            : GetLocalesAsync(input.ContentType, input.ContentId, null, context, cancellationToken);
 }

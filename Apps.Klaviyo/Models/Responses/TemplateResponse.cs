@@ -10,6 +10,9 @@ public class TemplateResponse
     [Display("Name")]
     public string? Name { get; set; }
 
+    [Display("Channel")]
+    public string? Channel { get; set; }
+
     [Display("Editor type")]
     public string? EditorType { get; set; }
 

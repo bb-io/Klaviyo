@@ -16,5 +16,5 @@ public class FlowMessageLocaleDataHandler(
 {
     public Task<IEnumerable<DataSourceItem>> GetDataAsync(
         DataSourceContext context, CancellationToken cancellationToken) =>
-        GetLocalesAsync(input.FlowMessageId, context, cancellationToken);
+        GetLocalesAsync(input.FlowMessageId, input.Channel, context, cancellationToken);
 }

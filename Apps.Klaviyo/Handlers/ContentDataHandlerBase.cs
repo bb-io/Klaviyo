@@ -8,7 +8,7 @@ namespace Apps.Klaviyo.Handlers;
 
 public abstract class ContentDataHandlerBase(
     InvocationContext invocationContext,
-    string contentType)
+    string? contentType)
     : Invocable(invocationContext)
 {
     protected Task<IEnumerable<DataSourceItem>> GetContentAsync(

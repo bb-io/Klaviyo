@@ -5,7 +5,6 @@ using Tests.Klaviyo.Base;
 namespace Tests.Klaviyo;
 
 [TestClass]
-[TestCategory("Integration")]
 public class ConnectionValidatorTests : TestBase
 {
     [TestMethod]

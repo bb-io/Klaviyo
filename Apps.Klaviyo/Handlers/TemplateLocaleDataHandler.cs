@@ -16,5 +16,5 @@ public class TemplateLocaleDataHandler(
     public Task<IEnumerable<DataSourceItem>> GetDataAsync(
         DataSourceContext context,
         CancellationToken cancellationToken) =>
-        GetLocalesAsync(input.TemplateId, context, cancellationToken);
+        GetLocalesAsync(input.TemplateId, input.Channel, context, cancellationToken);
 }
