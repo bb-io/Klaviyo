@@ -71,7 +71,7 @@ public static class TranslationHtmlFileCodec
             throw new PluginMisconfigurationException(
                 string.IsNullOrWhiteSpace(duplicateId.Key)
                     ? $"Every '{TranslationKeyAttribute}' attribute must have a value."
-                    : $"Translation value ID '{duplicateId.Key}' occurs more than once in the HTML file.");
+                    : $"Translation value ID '{duplicateId.Key}' occurs more than once in the content file.");
 
         var values = valueNodes.ToDictionary(
             node => node.GetAttributeValue(TranslationKeyAttribute, string.Empty),
@@ -79,7 +79,7 @@ public static class TranslationHtmlFileCodec
             StringComparer.Ordinal);
         if (values.Count == 0)
             throw new PluginMisconfigurationException(
-                $"The HTML file contains no elements with a '{TranslationKeyAttribute}' attribute.");
+                $"The content file contains no elements with a '{TranslationKeyAttribute}' attribute.");
 
         return new TranslationHtmlFile(metadata, values);
     }

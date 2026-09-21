@@ -111,11 +111,11 @@ public class ContentActions(
 
         if (inputType is not null && metadataType is not null && inputType != metadataType)
             throw new PluginMisconfigurationException(
-                $"The HTML file contains content type '{metadataType}', not '{inputType}'.");
+                $"The content file contains content type '{metadataType}', not '{inputType}'.");
 
         return inputType ?? metadataType
             ?? throw new PluginMisconfigurationException(
-                "Content type is required either as an input or in the HTML metadata.");
+                "Content type is required either as an input or in the content file metadata.");
     }
 
     private static string? NormalizeOptionalContentType(string? contentType)

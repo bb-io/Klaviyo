@@ -44,7 +44,7 @@ public static class TranslationChannelHelper
             .ToArray();
         if (resourceIds.Length > 1)
             throw new PluginMisconfigurationException(
-                $"The HTML file belongs to {resourceDisplayName.ToLowerInvariant()} '{resourceIds.Last()}', " +
+                $"The content file belongs to {resourceDisplayName.ToLowerInvariant()} '{resourceIds.Last()}', " +
                 $"not '{resourceIds.First()}'.");
 
         metadata.TryGetValue("Channel", out var metadataChannel);

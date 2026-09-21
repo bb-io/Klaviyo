@@ -65,7 +65,7 @@ public static class TranslationValuesHelper
         var unknownIds = uploadedValues.Keys.Where(id => !currentIds.Contains(id)).ToArray();
         if (unknownIds.Length > 0)
             throw new PluginMisconfigurationException(
-                $"The HTML file contains value IDs that do not belong to {resourceDisplayName.ToLowerInvariant()} " +
+                $"The content file contains value IDs that do not belong to {resourceDisplayName.ToLowerInvariant()} " +
                 $"'{resourceId}': {string.Join(", ", unknownIds)}");
     }
 
