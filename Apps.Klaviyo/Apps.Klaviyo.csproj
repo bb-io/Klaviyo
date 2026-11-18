@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <Product>Klaviyo [Beta]</Product>
         <Description>Klaviyo is a marketing automation platform that helps brands deliver personalized customer experiences across email, SMS, mobile push, and web.</Description>
-        <Version>1.0.1</Version>
+        <Version>1.0.2</Version>
         <AssemblyName>Apps.Klaviyo</AssemblyName>
     </PropertyGroup>
 
@@ -21,4 +21,7 @@
 		<EmbeddedResource CopyToOutputDirectory="Always" Include="image\icon.png" />
 	</ItemGroup>
 
+    <ItemGroup>
+        <EmbeddedResource Include="..\README.md" Link="README.md" CopyToOutputDirectory="Always" />
+    </ItemGroup>
 </Project>
