@@ -23,32 +23,11 @@ public class FlowMessageActions(
     private static readonly string[] SupportedChannels = TranslationChannels.FlowMessage;
 
     [Action("Search flow messages", Description = "Searches translations associated with flow messages.")]
-    public async Task<SearchTranslationsResponse> SearchFlowMessages(
+    public Task<SearchTranslationsResponse> SearchFlowMessages(
         [ActionParameter] SearchTranslationsRequest input)
     {
-        DateRangeValidator.Validate(input.UpdatedFrom, input.UpdatedTo);
-        var selectedChannels = TranslationSearchHelper.NormalizeAndValidate(
-            input.Channels, SupportedChannels, "channel");
-        string[] resourceTypes = [TranslationResourceTypes.FlowMessage];
-        var request = new RestRequest("translations", Method.Get)
-            .AddQueryParameter("include", TranslationResourceTypes.FlowMessage);
-
-        var items = new List<TranslationResponse>();
-        await foreach (var response in Client.PaginateAsync<TranslationDto>(request))
-        {
-            var included = response.Included
-                .GroupBy(item => $"{item.Type}::{item.Id}")
-                .ToDictionary(group => group.Key, group => group.First());
-            items.AddRange(response.Data
-                .Select(item => TranslationSearchHelper.MapTranslation(item, included))
-                .Where(item => TranslationSearchHelper.Matches(
-                    item, resourceTypes, selectedChannels, input)));
-        }
-
-        return new SearchTranslationsResponse
-        {
-            Items = items.OrderByDescending(item => item.Updated ?? item.Created ?? DateTime.MinValue).ToList()
-        };
+        return TranslationSearchHelper.SearchAsync(
+            Client, input, [TranslationResourceTypes.FlowMessage], SupportedChannels);
     }
 
     [Action("Get flow message", Description = "Gets flow message associated with a translation.")]
@@ -85,7 +64,7 @@ public class FlowMessageActions(
             TranslationResourceDisplayNames.FlowMessage, SupportedChannels, null,
             requestedChannel, translation.Attributes.Channel,
             TranslationChannelHelper.GetChannelFromTranslationId(translation.Id));
-        translation = await GetWithValuesAsync(translation.Id);
+        translation = await TranslationResourceHelper.GetWithValuesAsync(Client, translation.Id);
         if (translation.Attributes.Values.Count == 0)
             throw new PluginApplicationException(
                 $"Flow message '{flowMessageId}' has no exportable translation values.");
@@ -107,14 +86,14 @@ public class FlowMessageActions(
         var fileName = $"{flowMessageId}.{suffix}.html";
         html = TemplateHtmlFilterService.Create(html, fileName);
 
-        var htmlFile = await TranslationResourceHelper.SaveAsync(
+        var htmlFile = await TranslationFileService.UploadTextAsync(
             fileManagementClient, html, "text/html", fileName);
         var json = new JObject
         {
             ["data"] = JObject.FromObject(flowMessage),
             ["translation"] = JObject.FromObject(translation)
         };
-        var jsonFile = await TranslationResourceHelper.SaveAsync(fileManagementClient,
+        var jsonFile = await TranslationFileService.UploadTextAsync(fileManagementClient,
             json.ToString(), "application/json",
             $"{flowMessageId}.{suffix}.json");
 
@@ -126,14 +105,18 @@ public class FlowMessageActions(
     }
 
     [Action("Upload flow message", Description = "Uploads translated file to the specified existing or new flow message locale.")]
-    public async Task UploadFlowMessage([ActionParameter] UploadFlowMessageRequest input)
+    public Task UploadFlowMessage([ActionParameter] UploadFlowMessageRequest input) =>
+        UploadFlowMessage(input, null);
+
+    internal async Task UploadFlowMessage(
+        UploadFlowMessageRequest input,
+        TranslationHtmlFile? htmlFile)
     {
         var locale = TranslationValuesHelper.ValidateTargetLocale(input.Locale);
         if (input.Content is null)
             throw new PluginMisconfigurationException("Content file is required.");
 
-        using var stream = await fileManagementClient.DownloadAsync(input.Content);
-        var htmlFile = await TranslationContentReader.ReadAsync(stream, input.Content.Name);
+        htmlFile ??= await TranslationFileService.ReadAsync(fileManagementClient, input.Content);
         var (flowMessageId, fileChannel) = TranslationChannelHelper.ResolveUploadResourceReference(
             input.FlowMessageId,
             htmlFile.Metadata,
@@ -146,36 +129,17 @@ public class FlowMessageActions(
         var channel = TranslationChannelHelper.ResolveChannel(
             TranslationResourceDisplayNames.FlowMessage,
             SupportedChannels, null, fileChannel, resourceChannel);
-        var existing = await TranslationResourceHelper.FindTranslationAsync(
-            Client, TranslationResourceTypes.FlowMessage, flowMessageId, SupportedChannels, channel);
-        TranslationDto translation;
-        if (existing is null)
-        {
-            translation = await TranslationResourceHelper.CreateTranslationAsync(
-                Client, TranslationResourceTypes.FlowMessage,
+        await TranslationUploadService.UploadAsync(
+            Client,
+            new TranslationUploadContext(
+                TranslationResourceTypes.FlowMessage,
                 TranslationResourceDisplayNames.FlowMessage,
-                flowMessageId, locale, input.SourceLocale, channel);
-        }
-        else
-        {
-            if (string.Equals(existing.Attributes.SourceLocale, locale, StringComparison.OrdinalIgnoreCase))
-                throw new PluginMisconfigurationException("Target locale must differ from source locale.");
-            locale = existing.Attributes.TargetLocales.FirstOrDefault(value =>
-                         string.Equals(value, locale, StringComparison.OrdinalIgnoreCase)) ?? locale;
-            translation = existing;
-        }
-
-        var current = await GetWithValuesAsync(translation.Id);
-        TranslationValuesHelper.ValidateValueIds(
-            htmlFile.Values, current.Attributes.Values,
-            TranslationResourceDisplayNames.FlowMessage, flowMessageId);
-
-        var targetLocales = current.Attributes.TargetLocales.Contains(locale, StringComparer.OrdinalIgnoreCase)
-            ? null
-            : TranslationValuesHelper.AddTargetLocale(current.Attributes.TargetLocales, locale);
-        var request = TranslationRequestBuilder.UpdateValues(
-            current.Id, htmlFile.Values, locale, targetLocales);
-        await Client.ExecuteWithErrorHandling(request);
+                flowMessageId,
+                SupportedChannels,
+                channel,
+                locale,
+                input.SourceLocale,
+                htmlFile.Values));
     }
 
     private static (string ResourceId, string? Channel) ParseFlowMessageId(string? flowMessageId) =>
@@ -190,14 +154,6 @@ public class FlowMessageActions(
         var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<RelatedResourceDto>>(request);
         return response.Data ?? throw new PluginApplicationException(
             $"Returned no flow message '{flowMessageId}'.");
-    }
-
-    private async Task<TranslationDto> GetWithValuesAsync(string translationId)
-    {
-        var request = TranslationRequestBuilder.GetWithValues(translationId);
-        var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
-        return response.Data ?? throw new PluginApplicationException(
-            $"Returned no translation '{translationId}'.");
     }
 
     private static string GetFlowMessageChannel(RelatedResourceDto flowMessage)

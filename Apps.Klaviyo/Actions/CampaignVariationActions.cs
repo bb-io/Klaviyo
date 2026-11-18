@@ -24,32 +24,11 @@ public class CampaignVariationActions(
 
     [Action("Search campaign variations",
         Description = "Searches translations associated with campaign variations.")]
-    public async Task<SearchTranslationsResponse> SearchCampaignVariations(
+    public Task<SearchTranslationsResponse> SearchCampaignVariations(
         [ActionParameter] SearchTranslationsRequest input)
     {
-        DateRangeValidator.Validate(input.UpdatedFrom, input.UpdatedTo);
-        var selectedChannels = TranslationSearchHelper.NormalizeAndValidate(
-            input.Channels, SupportedChannels, "channel");
-        string[] resourceTypes = [TranslationResourceTypes.CampaignVariation];
-        var request = new RestRequest("translations", Method.Get)
-            .AddQueryParameter("include", TranslationResourceTypes.CampaignVariation);
-
-        var items = new List<TranslationResponse>();
-        await foreach (var response in Client.PaginateAsync<TranslationDto>(request))
-        {
-            var included = response.Included
-                .GroupBy(item => $"{item.Type}::{item.Id}")
-                .ToDictionary(group => group.Key, group => group.First());
-            items.AddRange(response.Data
-                .Select(item => TranslationSearchHelper.MapTranslation(item, included))
-                .Where(item => TranslationSearchHelper.Matches(
-                    item, resourceTypes, selectedChannels, input)));
-        }
-
-        return new SearchTranslationsResponse
-        {
-            Items = items.OrderByDescending(item => item.Updated ?? item.Created ?? DateTime.MinValue).ToList()
-        };
+        return TranslationSearchHelper.SearchAsync(
+            Client, input, [TranslationResourceTypes.CampaignVariation], SupportedChannels);
     }
 
     [Action("Get campaign variation",
@@ -89,7 +68,7 @@ public class CampaignVariationActions(
             TranslationResourceDisplayNames.CampaignVariation, SupportedChannels, null,
             requestedChannel, translation.Attributes.Channel,
             TranslationChannelHelper.GetChannelFromTranslationId(translation.Id));
-        translation = await GetWithValuesAsync(translation.Id);
+        translation = await TranslationResourceHelper.GetWithValuesAsync(Client, translation.Id);
         if (translation.Attributes.Values.Count == 0)
             throw new PluginApplicationException(
                 $"Campaign variation '{variationId}' has no exportable translation values.");
@@ -111,14 +90,14 @@ public class CampaignVariationActions(
         var fileName = $"{variationId}.{suffix}.html";
         html = TemplateHtmlFilterService.Create(html, fileName);
 
-        var htmlFile = await TranslationResourceHelper.SaveAsync(
+        var htmlFile = await TranslationFileService.UploadTextAsync(
             fileManagementClient, html, "text/html", fileName);
         var json = new JObject
         {
             ["data"] = JObject.FromObject(variation),
             ["translation"] = JObject.FromObject(translation)
         };
-        var jsonFile = await TranslationResourceHelper.SaveAsync(fileManagementClient,
+        var jsonFile = await TranslationFileService.UploadTextAsync(fileManagementClient,
             json.ToString(), "application/json",
             $"{variationId}.{suffix}.json");
 
@@ -130,15 +109,19 @@ public class CampaignVariationActions(
     }
 
     [Action("Upload campaign variation", Description = "Uploads translated file to the specified existing or new campaign variation locale.")]
-    public async Task UploadCampaignVariation(
-        [ActionParameter] UploadCampaignVariationRequest input)
+    public Task UploadCampaignVariation(
+        [ActionParameter] UploadCampaignVariationRequest input) =>
+        UploadCampaignVariation(input, null);
+
+    internal async Task UploadCampaignVariation(
+        UploadCampaignVariationRequest input,
+        TranslationHtmlFile? htmlFile)
     {
         var locale = TranslationValuesHelper.ValidateTargetLocale(input.Locale);
         if (input.Content is null)
             throw new PluginMisconfigurationException("Content file is required.");
 
-        using var stream = await fileManagementClient.DownloadAsync(input.Content);
-        var htmlFile = await TranslationContentReader.ReadAsync(stream, input.Content.Name);
+        htmlFile ??= await TranslationFileService.ReadAsync(fileManagementClient, input.Content);
         var (variationId, fileChannel) = TranslationChannelHelper.ResolveUploadResourceReference(
             input.CampaignVariationId,
             htmlFile.Metadata,
@@ -151,36 +134,17 @@ public class CampaignVariationActions(
         var channel = TranslationChannelHelper.ResolveChannel(
             TranslationResourceDisplayNames.CampaignVariation,
             SupportedChannels, null, fileChannel, resourceChannel);
-        var existing = await TranslationResourceHelper.FindTranslationAsync(
-            Client, TranslationResourceTypes.CampaignVariation, variationId, SupportedChannels, channel);
-        TranslationDto translation;
-        if (existing is null)
-        {
-            translation = await TranslationResourceHelper.CreateTranslationAsync(
-                Client, TranslationResourceTypes.CampaignVariation,
+        await TranslationUploadService.UploadAsync(
+            Client,
+            new TranslationUploadContext(
+                TranslationResourceTypes.CampaignVariation,
                 TranslationResourceDisplayNames.CampaignVariation,
-                variationId, locale, input.SourceLocale, channel);
-        }
-        else
-        {
-            if (string.Equals(existing.Attributes.SourceLocale, locale, StringComparison.OrdinalIgnoreCase))
-                throw new PluginMisconfigurationException("Target locale must differ from source locale.");
-            locale = existing.Attributes.TargetLocales.FirstOrDefault(value =>
-                         string.Equals(value, locale, StringComparison.OrdinalIgnoreCase)) ?? locale;
-            translation = existing;
-        }
-
-        var current = await GetWithValuesAsync(translation.Id);
-        TranslationValuesHelper.ValidateValueIds(
-            htmlFile.Values, current.Attributes.Values,
-            TranslationResourceDisplayNames.CampaignVariation, variationId);
-
-        var targetLocales = current.Attributes.TargetLocales.Contains(locale, StringComparer.OrdinalIgnoreCase)
-            ? null
-            : TranslationValuesHelper.AddTargetLocale(current.Attributes.TargetLocales, locale);
-        var request = TranslationRequestBuilder.UpdateValues(
-            current.Id, htmlFile.Values, locale, targetLocales);
-        await Client.ExecuteWithErrorHandling(request);
+                variationId,
+                SupportedChannels,
+                channel,
+                locale,
+                input.SourceLocale,
+                htmlFile.Values));
     }
 
     private static (string ResourceId, string? Channel) ParseCampaignVariationId(string? variationId) =>
@@ -204,14 +168,6 @@ public class CampaignVariationActions(
 
         throw new PluginApplicationException(
             $"No campaign variation returned '{variationId}'.");
-    }
-
-    private async Task<TranslationDto> GetWithValuesAsync(string translationId)
-    {
-        var request = TranslationRequestBuilder.GetWithValues(translationId);
-        var response = await Client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
-        return response.Data ?? throw new PluginApplicationException(
-            $"No translation returned '{translationId}'.");
     }
 
     private static string GetVariationChannel(RelatedResourceDto variation)
