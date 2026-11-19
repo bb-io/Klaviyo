@@ -1,16 +1,16 @@
-using Apps.Klaviyo.Api.Dtos;
 using Apps.Klaviyo.Constants;
 using Apps.Klaviyo.Helpers;
 using Apps.Klaviyo.Models.Requests;
 using Apps.Klaviyo.Models.Responses;
 using Apps.Klaviyo.Services;
+using Apps.Klaviyo.Services.Content;
+using Apps.Klaviyo.Services.Content.Models;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Blueprints;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using RestSharp;
 
 namespace Apps.Klaviyo.Actions;
 
@@ -19,17 +19,23 @@ public class ContentActions(
     InvocationContext invocationContext,
     IFileManagementClient fileManagementClient) : Invocable(invocationContext)
 {
+    private readonly ContentServiceFactory _contentServiceFactory =
+        new(invocationContext, fileManagementClient);
+
     [BlueprintActionDefinition(BlueprintAction.SearchContent)]
     [Action("Search content", Description = "Searches all content with translations.")]
     public Task<SearchTranslationsResponse> SearchContent([ActionParameter] SearchContentRequest input)
     {
-        DateRangeValidator.Validate(input.UpdatedFrom, input.UpdatedTo);
-        return SearchAsync(new SearchTranslationsRequest
-        {
-            Channels = input.Channels,
-            UpdatedFrom = input.UpdatedFrom,
-            UpdatedTo = input.UpdatedTo
-        }, input.ContentTypes);
+        return TranslationSearchHelper.SearchAsync(
+            Client,
+            new SearchTranslationsRequest
+            {
+                Channels = input.Channels,
+                UpdatedFrom = input.UpdatedFrom,
+                UpdatedTo = input.UpdatedTo
+            },
+            input.ContentTypes,
+            TranslationChannels.All);
     }
 
     [BlueprintActionDefinition(BlueprintAction.DownloadContent)]
@@ -40,13 +46,18 @@ public class ContentActions(
         TranslationChannelHelper.NormalizeOptionalChannel(
             input.Channel, TranslationChannels.ForResourceType(contentType),
             TranslationResourceDisplayNames.Content);
-        return contentType switch
+
+        var service = _contentServiceFactory.GetContentService(contentType);
+        var result = await service.DownloadAsync(new ContentDownloadServiceRequest
         {
-            TranslationResourceTypes.Template => await DownloadTemplate(input),
-            TranslationResourceTypes.CampaignVariation => await DownloadCampaignVariation(input),
-            TranslationResourceTypes.FlowMessage => await DownloadFlowMessage(input),
-            TranslationResourceTypes.UniversalContent => await DownloadUniversalContent(input),
-            _ => throw ExceptionHelper.UnsupportedContentType()
+            ContentId = input.ContentId,
+            Channel = input.Channel,
+            Locale = input.Locale
+        });
+        return new DownloadContentResponse
+        {
+            Content = result.Content,
+            JsonFile = result.JsonFile
         };
     }
 
@@ -57,48 +68,17 @@ public class ContentActions(
         if (input.Content is null)
             throw new PluginMisconfigurationException("Content file is required.");
 
-        using var stream = await fileManagementClient.DownloadAsync(input.Content);
-        var htmlFile = await TranslationContentReader.ReadAsync(stream, input.Content.Name);
+        var htmlFile = await TranslationFileService.ReadAsync(fileManagementClient, input.Content);
         var contentType = ResolveUploadContentType(input.ContentType, htmlFile.Metadata);
-
-        var upload = contentType switch
+        var service = _contentServiceFactory.GetContentService(contentType);
+        await service.UploadAsync(new ContentUploadServiceRequest
         {
-            TranslationResourceTypes.Template =>
-                new TemplateActions(InvocationContext, fileManagementClient).UploadTemplate(new UploadTemplateRequest
-                {
-                    TemplateId = input.ContentId,
-                    Locale = input.Locale,
-                    SourceLocale = input.SourceLocale,
-                    Content = input.Content
-                }),
-            TranslationResourceTypes.CampaignVariation =>
-                new CampaignVariationActions(InvocationContext, fileManagementClient).UploadCampaignVariation(new UploadCampaignVariationRequest
-                {
-                    CampaignVariationId = input.ContentId,
-                    Locale = input.Locale,
-                    SourceLocale = input.SourceLocale,
-                    Content = input.Content
-                }),
-            TranslationResourceTypes.FlowMessage =>
-                new FlowMessageActions(InvocationContext, fileManagementClient).UploadFlowMessage(new UploadFlowMessageRequest
-                {
-                    FlowMessageId = input.ContentId,
-                    Locale = input.Locale,
-                    SourceLocale = input.SourceLocale,
-                    Content = input.Content
-                }),
-            TranslationResourceTypes.UniversalContent =>
-                new UniversalContentActions(InvocationContext, fileManagementClient).UploadUniversalContent(new UploadUniversalContentRequest
-                {
-                    UniversalContentId = input.ContentId,
-                    Locale = input.Locale,
-                    SourceLocale = input.SourceLocale,
-                    Content = input.Content
-                }),
-            _ => throw ExceptionHelper.UnsupportedContentType()
-        };
-
-        await upload;
+            ContentId = input.ContentId,
+            Locale = input.Locale,
+            SourceLocale = input.SourceLocale,
+            Content = input.Content,
+            ParsedContent = htmlFile
+        });
     }
 
     private static string ResolveUploadContentType(
@@ -127,106 +107,6 @@ public class ContentActions(
         return TranslationResourceTypes.All.Contains(normalized, StringComparer.OrdinalIgnoreCase)
             ? normalized
             : throw ExceptionHelper.UnsupportedContentType();
-    }
-
-    private async Task<DownloadContentResponse> DownloadTemplate(DownloadContentRequest input)
-    {
-        var result = await new TemplateActions(InvocationContext, fileManagementClient).DownloadTemplate(
-            new DownloadTemplateRequest
-            {
-                Channel = input.Channel,
-                TemplateId = input.ContentId,
-                Locale = input.Locale
-            });
-        return new DownloadContentResponse { Content = result.Content, JsonFile = result.JsonFile };
-    }
-
-    private async Task<DownloadContentResponse> DownloadCampaignVariation(DownloadContentRequest input)
-    {
-        var result = await new CampaignVariationActions(InvocationContext, fileManagementClient).DownloadCampaignVariation(
-            new DownloadCampaignVariationRequest
-            {
-                Channel = input.Channel,
-                CampaignVariationId = input.ContentId,
-                Locale = input.Locale
-            });
-        return new DownloadContentResponse { Content = result.Content, JsonFile = result.JsonFile };
-    }
-
-    private async Task<DownloadContentResponse> DownloadFlowMessage(DownloadContentRequest input)
-    {
-        var result = await new FlowMessageActions(InvocationContext, fileManagementClient).DownloadFlowMessage(
-            new DownloadFlowMessageRequest
-            {
-                Channel = input.Channel,
-                FlowMessageId = input.ContentId,
-                Locale = input.Locale
-            });
-        return new DownloadContentResponse { Content = result.Content, JsonFile = result.JsonFile };
-    }
-
-    private async Task<DownloadContentResponse> DownloadUniversalContent(DownloadContentRequest input)
-    {
-        var result = await new UniversalContentActions(InvocationContext, fileManagementClient).DownloadUniversalContent(
-            new DownloadUniversalContentRequest
-            {
-                UniversalContentId = input.ContentId,
-                Locale = input.Locale
-            });
-        return new DownloadContentResponse { Content = result.Content, JsonFile = result.JsonFile };
-    }
-
-    private async Task<SearchTranslationsResponse> SearchAsync(
-        SearchTranslationsRequest input,
-        IEnumerable<string>? resourceTypes = null)
-    {
-        var selectedChannels = TranslationSearchHelper.NormalizeAndValidate(
-            input.Channels,
-            TranslationChannels.All,
-            "channel");
-        var requestedResourceTypes = resourceTypes?
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .ToArray();
-        var selectedResourceTypes = TranslationSearchHelper.NormalizeAndValidate(
-            requestedResourceTypes is { Length: > 0 } ? requestedResourceTypes : TranslationResourceTypes.All,
-            TranslationResourceTypes.All,
-            "content type");
-
-        var request = new RestRequest("translations", Method.Get);
-
-        // Klaviyo currently returns an empty collection for some documented
-        // resource_type filters. Fetch the collection and apply the same
-        // resource-type restriction locally for these resource types.
-        if (selectedResourceTypes.Count == 1 &&
-            !selectedResourceTypes[0].Equals(TranslationResourceTypes.CampaignVariation,
-                StringComparison.OrdinalIgnoreCase) &&
-            !selectedResourceTypes[0].Equals(TranslationResourceTypes.FlowMessage,
-                StringComparison.OrdinalIgnoreCase) &&
-            !selectedResourceTypes[0].Equals(TranslationResourceTypes.UniversalContent,
-                StringComparison.OrdinalIgnoreCase))
-            request.AddQueryParameter("filter", $"equals(resource_type,\"{selectedResourceTypes[0]}\")");
-
-        request.AddQueryParameter("include", string.Join(',', selectedResourceTypes));
-
-        var items = new List<TranslationResponse>();
-        await foreach (var response in Client.PaginateAsync<TranslationDto>(request))
-        {
-            var included = response.Included
-                .GroupBy(item => $"{item.Type}::{item.Id}")
-                .ToDictionary(group => group.Key, group => group.First());
-
-            items.AddRange(response.Data
-                .Select(item => TranslationSearchHelper.MapTranslation(item, included))
-                .Where(item => TranslationSearchHelper.Matches(
-                    item, selectedResourceTypes, selectedChannels, input)));
-        }
-
-        return new SearchTranslationsResponse
-        {
-            Items = items
-                .OrderByDescending(item => item.Updated ?? item.Created ?? DateTime.MinValue)
-                .ToList()
-        };
     }
 
 }

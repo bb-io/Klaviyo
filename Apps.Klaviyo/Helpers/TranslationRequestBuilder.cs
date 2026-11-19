@@ -6,16 +6,6 @@ namespace Apps.Klaviyo.Helpers;
 
 public static class TranslationRequestBuilder
 {
-    public static RestRequest FindByResourceId(string resourceId, int pageSize = 100) =>
-        new RestRequest("translations", Method.Get)
-            .AddQueryParameter("filter", $"equals(related_resource_id,\"{resourceId}\")")
-            .AddQueryParameter("page[size]", pageSize.ToString());
-
-    public static RestRequest GetWithValues(string translationId) =>
-        new RestRequest("translations/{translationId}", Method.Get)
-            .AddUrlSegment("translationId", translationId)
-            .AddQueryParameter("additional-fields[translation]", "values");
-
     public static RestRequest Create(
         string resourceType,
         string resourceId,

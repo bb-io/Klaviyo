@@ -3,11 +3,8 @@ using Apps.Klaviyo.Api.Dtos;
 using Apps.Klaviyo.Constants;
 using Apps.Klaviyo.Models.Responses;
 using Blackbird.Applications.Sdk.Common.Exceptions;
-using Blackbird.Applications.Sdk.Common.Files;
-using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json.Linq;
 using RestSharp;
-using System.Text;
 
 namespace Apps.Klaviyo.Helpers;
 
@@ -20,7 +17,9 @@ public static class TranslationResourceHelper
         IReadOnlyCollection<string> supportedChannels,
         string? channel = null)
     {
-        var request = TranslationRequestBuilder.FindByResourceId(resourceId);
+        var request = new RestRequest("translations", Method.Get)
+            .AddQueryParameter("filter", $"equals(related_resource_id,\"{resourceId}\")")
+            .AddQueryParameter("page[size]", "100");
         await foreach (var response in client.PaginateAsync<TranslationDto>(request))
         {
             var translation = response.Data.FirstOrDefault(item =>
@@ -42,6 +41,18 @@ public static class TranslationResourceHelper
         return null;
     }
 
+    public static async Task<TranslationDto> GetWithValuesAsync(
+        KlaviyoClient client,
+        string translationId)
+    {
+        var request = new RestRequest("translations/{translationId}", Method.Get)
+            .AddUrlSegment("translationId", translationId)
+            .AddQueryParameter("additional-fields[translation]", "values");
+        var response = await client.ExecuteWithErrorHandling<JsonApiSingleResponse<TranslationDto>>(request);
+        return response.Data ?? throw new PluginApplicationException(
+            $"Klaviyo returned no translation '{translationId}'.");
+    }
+
     public static async Task<TranslationDto> CreateTranslationAsync(
         KlaviyoClient client,
         string resourceType,
@@ -59,14 +70,6 @@ public static class TranslationResourceHelper
         return response.Data ?? throw new PluginApplicationException(
             $"Klaviyo did not return the created translation for '{resourceId}'.");
     }
-
-    public static Task<FileReference> SaveAsync(
-        IFileManagementClient fileManagementClient,
-        string content,
-        string mediaType,
-        string fileName) =>
-        fileManagementClient.UploadAsync(
-            new MemoryStream(Encoding.UTF8.GetBytes(content)), mediaType, fileName);
 
     public static async Task<RelatedResourceDto> GetRelatedResourceAsync(
         KlaviyoClient client,
