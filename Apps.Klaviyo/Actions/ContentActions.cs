@@ -3,6 +3,8 @@ using Apps.Klaviyo.Helpers;
 using Apps.Klaviyo.Models.Requests;
 using Apps.Klaviyo.Models.Responses;
 using Apps.Klaviyo.Services;
+using Apps.Klaviyo.Services.Content;
+using Apps.Klaviyo.Services.Content.Models;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
@@ -17,6 +19,9 @@ public class ContentActions(
     InvocationContext invocationContext,
     IFileManagementClient fileManagementClient) : Invocable(invocationContext)
 {
+    private readonly ContentServiceFactory _contentServiceFactory =
+        new(invocationContext, fileManagementClient);
+
     [BlueprintActionDefinition(BlueprintAction.SearchContent)]
     [Action("Search content", Description = "Searches all content with translations.")]
     public Task<SearchTranslationsResponse> SearchContent([ActionParameter] SearchContentRequest input)
@@ -41,13 +46,18 @@ public class ContentActions(
         TranslationChannelHelper.NormalizeOptionalChannel(
             input.Channel, TranslationChannels.ForResourceType(contentType),
             TranslationResourceDisplayNames.Content);
-        return contentType switch
+
+        var service = _contentServiceFactory.GetContentService(contentType);
+        var result = await service.DownloadAsync(new ContentDownloadServiceRequest
         {
-            TranslationResourceTypes.Template => await DownloadTemplate(input),
-            TranslationResourceTypes.CampaignVariation => await DownloadCampaignVariation(input),
-            TranslationResourceTypes.FlowMessage => await DownloadFlowMessage(input),
-            TranslationResourceTypes.UniversalContent => await DownloadUniversalContent(input),
-            _ => throw ExceptionHelper.UnsupportedContentType()
+            ContentId = input.ContentId,
+            Channel = input.Channel,
+            Locale = input.Locale
+        });
+        return new DownloadContentResponse
+        {
+            Content = result.Content,
+            JsonFile = result.JsonFile
         };
     }
 
@@ -60,53 +70,15 @@ public class ContentActions(
 
         var htmlFile = await TranslationFileService.ReadAsync(fileManagementClient, input.Content);
         var contentType = ResolveUploadContentType(input.ContentType, htmlFile.Metadata);
-
-        var upload = contentType switch
+        var service = _contentServiceFactory.GetContentService(contentType);
+        await service.UploadAsync(new ContentUploadServiceRequest
         {
-            TranslationResourceTypes.Template =>
-                new TemplateActions(InvocationContext, fileManagementClient).UploadTemplate(
-                    new UploadTemplateRequest
-                    {
-                        TemplateId = input.ContentId,
-                        Locale = input.Locale,
-                        SourceLocale = input.SourceLocale,
-                        Content = input.Content
-                    },
-                    htmlFile),
-            TranslationResourceTypes.CampaignVariation =>
-                new CampaignVariationActions(InvocationContext, fileManagementClient).UploadCampaignVariation(
-                    new UploadCampaignVariationRequest
-                    {
-                        CampaignVariationId = input.ContentId,
-                        Locale = input.Locale,
-                        SourceLocale = input.SourceLocale,
-                        Content = input.Content
-                    },
-                    htmlFile),
-            TranslationResourceTypes.FlowMessage =>
-                new FlowMessageActions(InvocationContext, fileManagementClient).UploadFlowMessage(
-                    new UploadFlowMessageRequest
-                    {
-                        FlowMessageId = input.ContentId,
-                        Locale = input.Locale,
-                        SourceLocale = input.SourceLocale,
-                        Content = input.Content
-                    },
-                    htmlFile),
-            TranslationResourceTypes.UniversalContent =>
-                new UniversalContentActions(InvocationContext, fileManagementClient).UploadUniversalContent(
-                    new UploadUniversalContentRequest
-                    {
-                        UniversalContentId = input.ContentId,
-                        Locale = input.Locale,
-                        SourceLocale = input.SourceLocale,
-                        Content = input.Content
-                    },
-                    htmlFile),
-            _ => throw ExceptionHelper.UnsupportedContentType()
-        };
-
-        await upload;
+            ContentId = input.ContentId,
+            Locale = input.Locale,
+            SourceLocale = input.SourceLocale,
+            Content = input.Content,
+            ParsedContent = htmlFile
+        });
     }
 
     private static string ResolveUploadContentType(
@@ -135,53 +107,6 @@ public class ContentActions(
         return TranslationResourceTypes.All.Contains(normalized, StringComparer.OrdinalIgnoreCase)
             ? normalized
             : throw ExceptionHelper.UnsupportedContentType();
-    }
-
-    private async Task<DownloadContentResponse> DownloadTemplate(DownloadContentRequest input)
-    {
-        var result = await new TemplateActions(InvocationContext, fileManagementClient).DownloadTemplate(
-            new DownloadTemplateRequest
-            {
-                Channel = input.Channel,
-                TemplateId = input.ContentId,
-                Locale = input.Locale
-            });
-        return new DownloadContentResponse { Content = result.Content, JsonFile = result.JsonFile };
-    }
-
-    private async Task<DownloadContentResponse> DownloadCampaignVariation(DownloadContentRequest input)
-    {
-        var result = await new CampaignVariationActions(InvocationContext, fileManagementClient).DownloadCampaignVariation(
-            new DownloadCampaignVariationRequest
-            {
-                Channel = input.Channel,
-                CampaignVariationId = input.ContentId,
-                Locale = input.Locale
-            });
-        return new DownloadContentResponse { Content = result.Content, JsonFile = result.JsonFile };
-    }
-
-    private async Task<DownloadContentResponse> DownloadFlowMessage(DownloadContentRequest input)
-    {
-        var result = await new FlowMessageActions(InvocationContext, fileManagementClient).DownloadFlowMessage(
-            new DownloadFlowMessageRequest
-            {
-                Channel = input.Channel,
-                FlowMessageId = input.ContentId,
-                Locale = input.Locale
-            });
-        return new DownloadContentResponse { Content = result.Content, JsonFile = result.JsonFile };
-    }
-
-    private async Task<DownloadContentResponse> DownloadUniversalContent(DownloadContentRequest input)
-    {
-        var result = await new UniversalContentActions(InvocationContext, fileManagementClient).DownloadUniversalContent(
-            new DownloadUniversalContentRequest
-            {
-                UniversalContentId = input.ContentId,
-                Locale = input.Locale
-            });
-        return new DownloadContentResponse { Content = result.Content, JsonFile = result.JsonFile };
     }
 
 }
